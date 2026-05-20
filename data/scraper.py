@@ -4,8 +4,8 @@ import time
 from bs4 import BeautifulSoup
 import urllib.parse
 import re
-import pandas as pd
 from config import LATIN_LIBRARY_AUTHORS
+import json
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
@@ -21,6 +21,8 @@ def scrape_latin_library():
     for author in LATIN_LIBRARY_AUTHORS :
         print(f"[START] Scraping author: {author} ...")
         author_subpages = scrape_author_subpages(base_url, author)
+        if author_subpages is None:
+            raise RuntimeError(f"[ERROR] No subpages for {author} found!")
         author_subpages_results = []
         for subpage_url in author_subpages:
             subpage_results = scrape_subpage(subpage_url)
@@ -35,8 +37,10 @@ def scrape_latin_library():
                 "results": author_subpages_results
             }
             print(f"[START] Storing authors results...")
-            base_dir = "latinlibrary/"
+            base_dir = "latinlibrary/raw/"
             store_results(collection, base_dir)
+            if author.endswith(".html"):
+                author = author.removesuffix(".html")
             filename = f"{base_dir}{author}.csv"
             print(f"[DONE] Saved results for {author} to {filename}. \n")
         time.sleep(60)    # Waiting 60 secs after each other to spare the server
@@ -44,7 +48,10 @@ def scrape_latin_library():
 
 def scrape_author_subpages(base_url, author):
     # Define url to author
-    author_url = base_url + author + "/"
+    if author.endswith(".html"):
+        author_url = base_url + author
+    else:
+        author_url = base_url + author + "/"
     print(f"Author url: {author_url}")
     # Request authors page and fetch all relevant subpages
     page_resp = requests.get(author_url, headers=headers)
@@ -73,25 +80,41 @@ def scrape_subpage(subpage_url):
     page_soup = BeautifulSoup(page_resp.text, 'html.parser')
     paragraphs = page_soup.find_all('p')
     clean_texts = []
+    ignore_classes = ['pagehead', 'border', 'shortborder', 'internal_navigation']
     for p in paragraphs:
+        p_classes = p.get('class', [])
+        if any(cls in ignore_classes for cls in p_classes):
+            continue
         # Delete <font> tags
         for font_tag in p.find_all('font'):
-            font_tag.decompose()
+            font_tag.unwrap()
         # Delete all <a> tags
         for a_tag in p.find_all('a'):
-            a_tag.decompose()
+            link_text = a_tag.get_text(strip=True)
+            if re.match(r'^\[?\d+\]?$', link_text):
+                a_tag.decompose()
+            else:
+                a_tag.unwrap()
         # Delete all <b> tags
-        for b_tag in p.find_all('b'):
-            if b_tag.find('a', attrs={'name': True}):
-                b_tag.decompose()
-        text = p.get_text(strip=True)
+        for tag in p.find_all(['b', 'i']):
+            tag.unwrap()
+        text = p.get_text(separator=" ", strip=True)
+        if "...." in text:
+            continue
+
         text = clean_text(text)
-        if text:
-            word_count = len(text.split())
-            clean_texts.append({
-                "text": text,
-                "word_count": word_count
-            })
+        if text and not word_sign_ratio(text):
+            words = text.split()
+            words = [
+                w for w in words
+                if not is_roman_numeral(w) and re.search(r'[a-zA-Z]', w)
+            ]
+            word_count = len(words)
+            if word_count >= 4:
+                clean_texts.append({
+                    "text": text,
+                    "word_count": word_count
+                })
     if len(clean_texts) == 0:
         return None
 
@@ -103,26 +126,49 @@ def scrape_subpage(subpage_url):
 
 def clean_text(text):
     text = re.sub(r'^\d+\.?\s*', '', text)
+    text = re.sub(r'^(?i)(?=[MDCLXVI])M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})\.?\s+', '', text)
+    text = re.sub(r'\[.*?\]', '', text)
+    text = re.sub(r'^[\W_]+', '', text)
+    text = re.sub(r'\s+', ' ', text)
+    text = re.sub(r'\.{2,}', '...', text)
+    text = text.replace('...', ' ... ')
+    if len(text) > 0:
+        text = text[0].upper() + text[1:]
     return text
 
 
-def store_results(collection, base_dir="latinlibrary/"):
-    if not os.path.isdir(base_dir):
-        os.mkdir(base_dir)
+def word_sign_ratio(text, threshold=0.1):
+    dot_count = text.count('.')
+    if len(text) == 0: return True
+    return (dot_count / len(text)) > threshold
+
+def store_results(collection, base_dir="latinlibrary/raw/"):
+    os.makedirs(base_dir, exist_ok=True)
     author = collection["author"]
     author_results = collection["results"]
-    df = pd.json_normalize(
-        author_results,
-        record_path=['subpage_results'],
-        meta=['author_subpage']
-    )
-    df = df.rename(columns={
-        'author_subpage': 'subpage',
-        'word-cnt': 'word_count'
-    })
-    df = df[["subpage", "word_count", "text"]]
-    filename = f"{base_dir}{author}.csv"
-    df.to_csv(filename, index=False, encoding="utf-8")
+    filename = f"{base_dir}{author}.jsonl"
+    with open(filename, mode="w", encoding="utf-8") as f:
+        for page_data in author_results:
+            subpage_url = page_data["author_subpage"]
+            for result in page_data["subpage_results"]:
+                json_record = {
+                    "text": result["text"],
+                    "word_count": result["word_count"],
+                    "meta": {
+                        "author": author,
+                        "source_url": subpage_url
+                    }
+                }
+                json_string = json.dumps(json_record, ensure_ascii=False)
+                f.write(json_string + "\n")
+
+
+def is_roman_numeral(word):
+    clean_word = re.sub(r'[\W_]+', '', word)
+    if not clean_word:
+        return False
+    pattern = r'^(?i)(?=[MDCLXVI])M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$'
+    return bool(re.match(pattern, clean_word))
 
 
 if __name__ == "__main__":
