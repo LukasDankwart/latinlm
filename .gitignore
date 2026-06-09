@@ -1,4 +1,37 @@
-.idea/
+# ── Project specific ─────────────────────────────────────────────────────
+#.data/
+/data/
+
+# ── Python ───────────────────────────────────────────────────────────────────
 __pycache__/
-*.bin
-.env
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ── Virtual envs ─────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ── Test / Coverage / Type-Checking ──────────────────────────────────────────
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# ── IDE / Editor ─────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ── BS ───────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
