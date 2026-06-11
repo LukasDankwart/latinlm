@@ -13,6 +13,10 @@ DATASETS_TO_DOWNLOAD = [
     {
         "name": "HuggingFaceFW/fineweb-2",
         "subset": "lat_Latn",
+    },
+    {
+        "name": "wikimedia/wikipedia",
+        "subset": "20231101.la",
     }
 ]
 DATASETS_SAMPLE_LIMIT = 100

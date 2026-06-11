@@ -3,9 +3,6 @@ import requests
 from bs4 import BeautifulSoup
 import json
 from src.data.preprocessing import split_paragraph_to_sentences,clean_paragraph
-import src.config as config
-from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 import time
 
 headers = {
