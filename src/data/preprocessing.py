@@ -5,6 +5,23 @@ import src.config as config
 from lingua import Language, LanguageDetectorBuilder
 from pathlib import Path
 
+from concurrent.futures import ProcessPoolExecutor
+
+languages = [Language.LATIN, Language.ENGLISH, Language.GERMAN, Language.FRENCH, Language.ITALIAN]
+detector = None
+
+def init_worker():
+    """ Initializes the detector. The function is called once per cpu thread that is used while preprocessing """
+
+    global detector
+    detector = LanguageDetectorBuilder.from_languages(*languages).build()
+
+def filter_with_lingua(sentence):
+    """ Predicts language of given sentence by using lingua model. Returns predicted language """
+    global detector
+    if detector is not None:
+        return detector.detect_language_of(sentence)
+    return None
 """
  ──────────────────────────────────────────────────
  ─────────── Normalization ────────────────────────────
@@ -40,9 +57,6 @@ def normalize_sentence(sentence: str) -> str:
  ─────────── Filtering ────────────────────────────
 """
 
-languages = [Language.LATIN, Language.ENGLISH, Language.GERMAN, Language.FRENCH, Language.ITALIAN]
-detector = LanguageDetectorBuilder.from_languages(*languages).build()
-
 def is_quality_sentence(sentence: str) -> bool:
     """ Decides if a given sentence has good quality by heuristics """
 
@@ -71,7 +85,7 @@ def is_quality_sentence(sentence: str) -> bool:
         return False
 
     # 5. Finally use a language detection model to decide if this is valid latin or not.
-    detected_language = detector.detect_language_of(sentence)
+    detected_language = filter_with_lingua(sentence)
     if detected_language != Language.LATIN:
         return False
 
@@ -119,6 +133,34 @@ def split_paragraph_to_sentences(text: str) -> list[str]:
     return cleaned_sentences
 
 
+def process_single_line(line: str):
+    """ Processes one specific line. Is designed to be executed parallel multiple times. """
+
+    try:
+        data = json.loads(line)
+        paragraph = data["text"]
+        sentences = split_paragraph_to_sentences(paragraph)
+        cleaned_paragraph = clean_paragraph(sentences)
+
+        if not cleaned_paragraph:
+            return None, 0, 0
+
+        cleaned_sample = " ".join(cleaned_paragraph)
+        if cleaned_sample == "":
+            return None, 0, 0
+
+        words = cleaned_sample.split()
+        new_data = {
+            "text": cleaned_sample,
+            "wrd_cnt": len(words)
+        }
+        return new_data, len(words), len(cleaned_paragraph)
+
+    except Exception as e:
+        print(f"[ERROR] {e}")
+        return None, 0, 0
+
+
 def process_file(input_path: str, output_dir: str) -> int:
     """ Processes specified file by extracting each sample and verifying each sentence."""
 
@@ -136,40 +178,31 @@ def process_file(input_path: str, output_dir: str) -> int:
     verified_sentences_cnt = 0
     verified_words_cnt = 0
 
-    with open(input_path, "r", encoding="utf-8") as infile:
-        print(f"[START] Filtering {input_path}...")
-        for line in infile:
-            data = json.loads(line)
-            new_data = {}
-            paragraph = data["text"]
-            sentences = split_paragraph_to_sentences(paragraph)
-            cleaned_paragraph = clean_paragraph(sentences)
-            if not cleaned_paragraph:
-                cleaned_sample = ""
-            else:
-                cleaned_sample = " ".join(cleaned_paragraph)
+    print(f"[START] Start processing {input_path}...")
+    with open(input_path, "r", encoding="utf-8") as infile, \
+            open(output_path, "a", encoding="utf-8") as outfile:
 
-            # Only if the paragraph is cleaned properly!
-            if cleaned_sample != "":
-                words = cleaned_sample.split()
-                verified_words_cnt += len(words)
-                verified_sentences_cnt += len(cleaned_paragraph)
+        with ProcessPoolExecutor(max_workers=config.NUM_CPU_WORKERS, initializer=init_worker()) as executor:
 
-                new_data["text"] = cleaned_sample
-                new_data["wrd_cnt"] = len(words)
+            for result in executor.map(process_single_line, infile, chunksize=1000):
+                new_data, words_cnt, sentences_cnt = result
 
-                with open(output_path, "a", encoding="utf-8") as outfile:
+                if new_data is not None:
                     json.dump(new_data, outfile, ensure_ascii=False)
                     outfile.write("\n")
                     processed_samples_cnt += 1
-            else:
-                dropped_samples_cnt += 1
+                    verified_words_cnt += words_cnt
+                    verified_sentences_cnt += sentences_cnt
+                else:
+                    dropped_samples_cnt += 1
 
-            if (processed_samples_cnt + dropped_samples_cnt) % 100 == 0:
-                print(f"-- {processed_samples_cnt + dropped_samples_cnt} samples processed...")
-        print(f"[END] Done filtering {input_path}...")
-        print(f"-- {processed_samples_cnt} samples have been accepted.")
-        print(f"-- {dropped_samples_cnt} samples have been dropped.")
-        print(f"-- Total amount of words: {verified_words_cnt}")
-        return verified_words_cnt
+                total_processed = processed_samples_cnt + dropped_samples_cnt
+                if total_processed % 1000 == 0:
+                    print(f"-- {total_processed} samples processed...")
+
+    print(f"[END] Done processing {input_path}...")
+    print(f"-- {processed_samples_cnt} samples have been accepted.")
+    print(f"-- {dropped_samples_cnt} samples have been dropped.")
+    print(f"-- Total amount of words: {verified_words_cnt}")
+    return verified_words_cnt
 

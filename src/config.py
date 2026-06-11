@@ -27,3 +27,4 @@ VATICAN_BASE_API_URL = "https://www.vaticannews.va/bin/servlet/solr/search"
 
 
 # ─── Hardware Parameters ────────────────────────────
+NUM_CPU_WORKERS = 12
