@@ -214,43 +214,5 @@ def scrape_nuntii_latini(list_urls: list, output_dir: str) -> None:
     print(f"[STORED] Results at {output_path}")
     print(f"-- Overall number of words: {wrd_sum}")
 
-if __name__ == "__main__":
-
-    # Vatican news
-    request_url = "https://www.vaticannews.va/bin/servlet/solr/search?queryroute=vaticannews-search-main&q=hebdomada%20AXNXD%20papae&fq=lang_s:it&sort=editorial_date_dt%20desc,id%20asc&rows=18&qId=8c78f938-3e32-461a-8cf3-a889875adb25"
-    vatican_base_api_url = "https://www.vaticannews.va/bin/servlet/solr/search"
-
-    # Nuntii Latini
-    nuntii_base_url = "https://nuntiilatini.com/page/"
-
-    console = Console()
-    output_dir = config.RAW_DATA_DIR
-
-    with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            TimeElapsedColumn(),
-            console=console,
-    ) as progress:
-
-        """ 1. Find all URLs to subpages that are related to 'hebdomadae-papae' 
-        task1 = progress.add_task(f"[cyan] Scraping subpages of vatican news...", total=None)
-        subpages_urls = get_subpages_links(vatican_base_api_url)
-        progress.update(task1, description=f"[green]✓ {len(subpages_urls)} URLs to subpages have been found!", total=1, completed=1)
-        """
-        """ 2. Scrape each of the found subpages for latin data 
-        task2 = progress.add_task(f"[yellow] Scraping subpages of vatican news...", total=None)
-        scrape_vatican(subpages_urls, output_dir)
-        progress.update(task2, description=f"[green]✓ Data from vatican news has been stored in {output_dir} ", total=1, completed=1)
-        """
-        """ 3. Find all URLS of blog post from 'Nuntii Latini' """
-        task3 = progress.add_task(f"[blue] Scraping URLs of Nuntii Latini ...", total=None)
-        nuntii_subpages = scrape_nuntii_latini_subpages(nuntii_base_url)
-        progress.update(task3, description=f"[green]✓ {len(nuntii_subpages)} URLs to Nuntii Latini blog posts have been found!", total=1, completed=1)
-
-        """ 4. Find all URLS of blog post from 'Nuntii Latini' """
-        task3 = progress.add_task(f"[orange] Scraping whole Nuntii Latini...", total=None)
-        scrape_nuntii_latini(nuntii_subpages, output_dir)
-        progress.update(task3, description=f"[green]✓ Data from nuntii latini has been stored in {output_dir}", total=1, completed=1)
 
 

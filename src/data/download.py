@@ -7,7 +7,7 @@ def stream_and_sample_dataset(
         dataset_name: str,
         subset: str | None,
         output_filename:str,
-        num_samples: int=1000,
+        num_samples: int | None = None,
         ) -> None:
     """ Streams specified dataset and stores to given output file name """
 
@@ -20,11 +20,12 @@ def stream_and_sample_dataset(
     if not os.path.isdir(config.RAW_DATA_DIR):
         os.makedirs(config.RAW_DATA_DIR)
     output_path = os.path.join(config.RAW_DATA_DIR, output_filename)
-    print(f"-- Processing dataset '{subset}'...")
+    print(f"-- Processing dataset name: {dataset_name}, subset: {subset}...")
     with open(output_path, "w", encoding="utf-8") as f:
         for i, sample in enumerate(dataset):
-            if i >= num_samples:
-                break
+            if num_samples is not None:
+                if i >= num_samples:
+                    break
             json.dump(sample, f, ensure_ascii=False)
             f.write("\n")
 
@@ -32,10 +33,3 @@ def stream_and_sample_dataset(
                 print(f"-- {i+1} Samples have been loaded...")
     print(f"[END] Successfully stored {dataset_name} data to '{output_filename}'!")
 
-if __name__ == "__main__":
-    stream_and_sample_dataset(
-        dataset_name="PleIAs/Latin-PD",
-        subset=None,
-        output_filename="latin_pd.jsonl",
-        num_samples=1000
-    )

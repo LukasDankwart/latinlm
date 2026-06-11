@@ -166,9 +166,3 @@ def process_file(input_path: str, output_dir: str) -> None:
         print(f"-- {dropped_samples_cnt} samples have been dropped.")
         print(f"-- Total amount of words: {verified_words_cnt}")
 
-
-if __name__ == "__main__":
-    process_file(
-        input_path="data/raw/fineweb_latin.jsonl",
-        output_dir=config.PROCESSED_DATA_DIR
-    )
