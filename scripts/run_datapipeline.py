@@ -69,6 +69,15 @@ def main():
         else:
             console.print(f"[yellow]>> Skip scraping websites. [/yellow]")
 
+        # 3. Step: ───────── Calling pre-processing scripts ───────────────
+        if not args.skip_preprocessing:
+            scrape_task = progress.add_task("[cyan] Preprocessing step...")
+            run_subscript("scripts.pipeline.03_run_preprocessing", "Pre-processing", progress)
+            progress.update(scrape_task, description=f"[green]✓ Pre-processing step successful![/green]",
+                            total=1, completed=1)
+        else:
+            console.print(f"[yellow]>> Skip Pre-processing websites. [/yellow]")
+
 
 if __name__ == "__main__":
     main()

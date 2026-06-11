@@ -3,6 +3,7 @@ import json
 import re
 import src.config as config
 from lingua import Language, LanguageDetectorBuilder
+from pathlib import Path
 
 """
  ──────────────────────────────────────────────────
@@ -118,24 +119,28 @@ def split_paragraph_to_sentences(text: str) -> list[str]:
     return cleaned_sentences
 
 
-def process_file(input_path: str, output_dir: str) -> None:
+def process_file(input_path: str, output_dir: str) -> int:
     """ Processes specified file by extracting each sample and verifying each sentence."""
 
     if not os.path.isfile(input_path):
         raise FileNotFoundError(f"[ERROR] Given path '{input_path}' is not a file!")
 
     output_file_name = os.path.basename(input_path).removesuffix(".jsonl") + "_clean.jsonl"
-    output_path = os.path.join(output_dir, output_file_name)
+    output_path = Path(os.path.join(output_dir, output_file_name))
+
+    if output_path.exists():
+        output_path.unlink()
 
     processed_samples_cnt = 0
     dropped_samples_cnt = 0
     verified_sentences_cnt = 0
     verified_words_cnt = 0
-    with open(input_path, "r", encoding="utf-8") as infile, \
-            open(output_path, "w", encoding="utf-8") as outfile:
+
+    with open(input_path, "r", encoding="utf-8") as infile:
         print(f"[START] Filtering {input_path}...")
         for line in infile:
             data = json.loads(line)
+            new_data = {}
             paragraph = data["text"]
             sentences = split_paragraph_to_sentences(paragraph)
             cleaned_paragraph = clean_paragraph(sentences)
@@ -150,12 +155,13 @@ def process_file(input_path: str, output_dir: str) -> None:
                 verified_words_cnt += len(words)
                 verified_sentences_cnt += len(cleaned_paragraph)
 
-                data["text"] = cleaned_sample
-                data["wrd_cnt"] = len(words)
+                new_data["text"] = cleaned_sample
+                new_data["wrd_cnt"] = len(words)
 
-                json.dump(data, outfile, ensure_ascii=False)
-                outfile.write("\n")
-                processed_samples_cnt += 1
+                with open(output_path, "a", encoding="utf-8") as outfile:
+                    json.dump(new_data, outfile, ensure_ascii=False)
+                    outfile.write("\n")
+                    processed_samples_cnt += 1
             else:
                 dropped_samples_cnt += 1
 
@@ -165,4 +171,5 @@ def process_file(input_path: str, output_dir: str) -> None:
         print(f"-- {processed_samples_cnt} samples have been accepted.")
         print(f"-- {dropped_samples_cnt} samples have been dropped.")
         print(f"-- Total amount of words: {verified_words_cnt}")
+        return verified_words_cnt
 

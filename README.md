@@ -22,10 +22,11 @@ source .venv/bin/activate # Linux/Mac
 .venv\Scripts\Activate # Windows
 ```
 Scripts can be executed by using
-`uv run python -m path.to.module`, while new packages can be added by `uv add [PACAKGE]` 
-and are added to the *[pyproject.toml](pyproject.toml)* automatically.
+`uv run python -m path.to.module`.
 
-Note: If you pull a new state, it is recommended to also use `uv sync` again to load new dependencies.
+**Note**: Workflow 
+- New packages can be added by `uv add [PACAKGE]` and are listed to the *[pyproject.toml](pyproject.toml)* automatically.
+- If you pull a new state, it is recommended to also use `uv lock && uv sync` again to load new dependencies
 
 ## 2. Project Structure
 This repository has the following code base structure:

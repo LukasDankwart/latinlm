@@ -2,6 +2,7 @@ import os
 import json
 from datasets import load_dataset
 import src.config as config
+from pathlib import Path
 
 def stream_and_sample_dataset(
         dataset_name: str,
@@ -19,17 +20,24 @@ def stream_and_sample_dataset(
 
     if not os.path.isdir(config.RAW_DATA_DIR):
         os.makedirs(config.RAW_DATA_DIR)
-    output_path = os.path.join(config.RAW_DATA_DIR, output_filename)
+
+    output_path = Path(os.path.join(config.RAW_DATA_DIR, output_filename))
+
+    if output_path.exists():
+        output_path.unlink()
+
     print(f"-- Processing dataset name: {dataset_name}, subset: {subset}...")
-    with open(output_path, "w", encoding="utf-8") as f:
-        for i, sample in enumerate(dataset):
-            if num_samples is not None:
-                if i >= num_samples:
-                    break
+
+    for i, sample in enumerate(dataset):
+        if num_samples is not None:
+            if i >= num_samples:
+                break
+        with open(output_path, "a", encoding="utf-8") as f:
             json.dump(sample, f, ensure_ascii=False)
             f.write("\n")
 
             if (i + 1) % 100 == 0:
-                print(f"-- {i+1} Samples have been loaded...")
+                print(f"-- {i + 1} Samples have been loaded...")
+
     print(f"[END] Successfully stored {dataset_name} data to '{output_filename}'!")
 

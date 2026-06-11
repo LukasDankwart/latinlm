@@ -1,3 +1,5 @@
+import os
+
 import src.config as config
 import src.data.scraper as scraper
 
@@ -7,6 +9,9 @@ import src.data.scraper as scraper
 
 if __name__ == "__main__":
     output_dir = config.RAW_DATA_DIR
+
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
 
     print(f"[START] Start scrapers for all implemented websites...")
 

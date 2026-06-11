@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import json
 from src.data.preprocessing import split_paragraph_to_sentences,clean_paragraph
 import time
+from pathlib import Path
 
 headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -53,7 +54,7 @@ def scrape_vatican(list_urls: list, output_dir: str) -> None:
     """ Scrapes given list of urls separately """
 
     data = []
-    print(f"[START] Scraping given set of urls...")
+    print(f"[START] Scraping given set of urls of vatican news...")
     for idx, url in enumerate(list_urls):
         if idx % 10 == 0:
             print(f"-- {idx} / {len(list_urls)} scraped")
@@ -94,7 +95,7 @@ def get_subpages_links(api_url: str) -> list[str]:
         "rows": 50,
         "start": 0
     }
-    print(f"[START] Scraping references of subpages...")
+    print(f"[START] Scraping references of vatican news subpages...")
     all_urls = []
     while True:
         print(f"-- Starting from index {params['start']}...")
@@ -193,20 +194,25 @@ def scrape_nuntii_latini(list_urls: list, output_dir: str) -> None:
             data.extend(subpage_data)
         time.sleep(1)
     filename = "nuntii_latini.jsonl"
-    output_path = os.path.join(output_dir, filename)
+
+    output_path = Path(os.path.join(output_dir, filename))
+    if output_path.exists():
+        output_path.unlink()
+
     print(f"[END] Finished scraping")
     print(f"-- {len(data)} samples have been aggregated \n")
     wrd_sum = 0
-    with open(output_path, mode="w", encoding="utf-8") as f:
-        for page in data:
-            wrd_sum += page["wrd_cnt"]
-            json_record = {
-                "url": page["url"],
-                "paragraph": page["paragraph"],
-                "wrd_cnt": page["wrd_cnt"],
-                "text": page["text"]
-            }
-            json_string = json.dumps(json_record, ensure_ascii=False)
+
+    for page in data:
+        wrd_sum += page["wrd_cnt"]
+        json_record = {
+            "url": page["url"],
+            "paragraph": page["paragraph"],
+            "wrd_cnt": page["wrd_cnt"],
+            "text": page["text"]
+        }
+        json_string = json.dumps(json_record, ensure_ascii=False)
+        with open(output_path, mode="a", encoding="utf-8") as f:
             f.write(json_string + "\n")
     print(f"[STORED] Results at {output_path}")
     print(f"-- Overall number of words: {wrd_sum}")

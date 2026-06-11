@@ -1,3 +1,5 @@
+import os
+
 import src.config as config
 from src.data.download import stream_and_sample_dataset
 import re
@@ -8,6 +10,11 @@ import re
 
 if __name__ == "__main__":
     print(f"[START] Downloading datasets specified in config.DATASETS_TO_DOWNLOAD...")
+
+    output_dir = config.RAW_DATA_DIR
+
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
 
     num_samples = config.DATASETS_SAMPLE_LIMIT
     for dataset in config.DATASETS_TO_DOWNLOAD:

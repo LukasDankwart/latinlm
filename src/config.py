@@ -19,7 +19,11 @@ DATASETS_TO_DOWNLOAD = [
         "subset": "20231101.la",
     }
 ]
-DATASETS_SAMPLE_LIMIT = 100
+DATASETS_SAMPLE_LIMIT = 10
 
 NUNTII_BASE_URL = "https://nuntiilatini.com/page/"
 VATICAN_BASE_API_URL = "https://www.vaticannews.va/bin/servlet/solr/search"
+
+
+
+# ─── Hardware Parameters ────────────────────────────
