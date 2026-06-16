@@ -47,12 +47,21 @@ def main():
 
         # 3. Step: ───────── Calling pre-processing scripts ───────────────
         if not args.skip_preprocessing:
-            scrape_task = progress.add_task("[cyan] Preprocessing step...")
+            preprocessing_task = progress.add_task("[cyan] Preprocessing step...")
             run_subscript(console, "scripts.pipeline.03_run_preprocessing", "Pre-processing", progress)
-            progress.update(scrape_task, description=f"[green]✓ Pre-processing step successful![/green]",
+            progress.update(preprocessing_task, description=f"[green]✓ Pre-processing step successful![/green]",
                             total=1, completed=1)
         else:
-            console.print(f"[yellow]>> Skip Pre-processing websites. [/yellow]")
+            console.print(f"[yellow]>> Skip Pre-processing. [/yellow]")
+
+        # 4. Step: ───────── Calling pre-tokenization scripts ───────────────
+        if not args.skip_tokenize:
+            tokenize_task = progress.add_task("[cyan] Pre-tokenization step...")
+            run_subscript(console, "scripts.pipeline.04_run_tokenization", "Tokenization", progress)
+            progress.update(tokenize_task, description=f"[green]✓ Pre-tokenization step successful![/green]",
+                            total=1, completed=1)
+        else:
+            console.print(f"[yellow]>> Skip pre-tokenization. [/yellow]")
 
 
 if __name__ == "__main__":
