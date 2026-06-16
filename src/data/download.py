@@ -36,7 +36,7 @@ def stream_and_sample_dataset(
             json.dump(sample, f, ensure_ascii=False)
             f.write("\n")
 
-            if (i + 1) % 100 == 0:
+            if (i + 1) % 100000 == 0:
                 print(f"-- {i + 1} Samples have been loaded...")
 
     print(f"[END] Successfully stored {dataset_name} data to '{output_filename}'!")

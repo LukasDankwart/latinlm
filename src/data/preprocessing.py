@@ -7,7 +7,7 @@ import src.config as config
 from lingua import Language, LanguageDetectorBuilder
 from pathlib import Path
 
-from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import Pool
 
 languages = [Language.LATIN, Language.ENGLISH, Language.GERMAN, Language.FRENCH, Language.ITALIAN]
 detector = None
@@ -205,9 +205,9 @@ def process_file(input_path: str, output_dir: str) -> int:
     with open(input_path, "r", encoding="utf-8") as infile, \
             open(output_path, "a", encoding="utf-8") as outfile:
 
-        with ProcessPoolExecutor(max_workers=config.NUM_CPU_WORKERS, initializer=init_worker()) as executor:
+        with Pool(processes=config.NUM_CPU_WORKERS, initializer=init_worker) as pool:
 
-            for result in executor.map(process_single_line, infile, chunksize=1000):
+            for result in pool.imap_unordered(process_single_line, infile, chunksize=1000):
                 new_data, words_cnt, sentences_cnt = result
 
                 if new_data is not None:
@@ -220,7 +220,7 @@ def process_file(input_path: str, output_dir: str) -> int:
                     dropped_samples_cnt += 1
 
                 total_processed = processed_samples_cnt + dropped_samples_cnt
-                if total_processed % 1000 == 0:
+                if total_processed % 100000 == 0:
                     print(f"-- {total_processed} samples processed...")
 
     print(f"[END] Done processing {input_path}...")
