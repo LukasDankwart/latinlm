@@ -1,35 +1,11 @@
 import argparse
-import subprocess
-import sys
 from rich.panel import Panel
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
+from src.utils.script_utils import run_subscript
+
 console = Console()
-
-def run_subscript(script_path, step_name: str, progress) -> None:
-    """ Runs a specified extern python script as subprocess and catches exceptions"""
-
-    console.print(f"\n [yellow] Starting {step_name} step...[/yellow]")
-
-    process = subprocess.Popen(
-        ["uv", "run", "python", "-u", "-m", script_path],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-    )
-    #subprocess.run(["uv", "run", "python", "-m", script_path], check=True)
-    for line in process.stdout:
-        progress.console.print(line.strip())
-    process.wait()
-
-    if process.returncode != 0:
-        console.print(f"[bold red]✗ Error in {step_name} step...[/bold red]")
-        console.print(f"[bold red]- Pipeline will be stopped [/bold red]")
-        console.print(f"[bold red]- Error code: {process.returncode}[/bold red]")
-        sys.exit(1)
-
-    console.print(f"[green]✓ {step_name} was successful![/green]")
 
 def main():
     parser = argparse.ArgumentParser(description="Running complete Pipeline for Latin data aggregation.")
@@ -54,7 +30,7 @@ def main():
         # 1. Step: ───────── Downloading pre-existing datasets from huggingface ───────────────
         if not args.skip_download:
             download_task = progress.add_task("[cyan] Download step...")
-            run_subscript("scripts.pipeline.01_run_download", "Download", progress)
+            run_subscript(console, "scripts.pipeline.01_run_download", "Download", progress)
             progress.update(download_task, description=f"[green]✓ Download step successful![/green]",
                             total=1, completed=1)
         else:
@@ -63,7 +39,7 @@ def main():
         # 2. Step: ───────── Scraping specified data websites ───────────────
         if not args.skip_scraping:
             scrape_task = progress.add_task("[cyan] Scraping step...")
-            run_subscript("scripts.pipeline.02_run_scraping", "Scraping", progress)
+            run_subscript(console, "scripts.pipeline.02_run_scraping", "Scraping", progress)
             progress.update(scrape_task, description=f"[green]✓ Scraping step successful![/green]",
                             total=1, completed=1)
         else:
@@ -72,7 +48,7 @@ def main():
         # 3. Step: ───────── Calling pre-processing scripts ───────────────
         if not args.skip_preprocessing:
             scrape_task = progress.add_task("[cyan] Preprocessing step...")
-            run_subscript("scripts.pipeline.03_run_preprocessing", "Pre-processing", progress)
+            run_subscript(console, "scripts.pipeline.03_run_preprocessing", "Pre-processing", progress)
             progress.update(scrape_task, description=f"[green]✓ Pre-processing step successful![/green]",
                             total=1, completed=1)
         else:
