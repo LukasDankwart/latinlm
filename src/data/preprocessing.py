@@ -1,6 +1,8 @@
 import os
 import json
 import re
+import unicodedata
+
 import src.config as config
 from lingua import Language, LanguageDetectorBuilder
 from pathlib import Path
@@ -29,6 +31,10 @@ def filter_with_lingua(sentence):
 def normalize_sentence(sentence: str) -> str:
     """ Normalizes given sentence with heuristics """
 
+    sentence = normalize_unicode(sentence)
+    sentence = normalize_spaces(sentence)
+    sentence = normalize_markers(sentence)
+
     # Removing Latex or JSON artefacts
     sentence = re.sub(r'\{.*?\}|<.*?>|\[.*?\]', '', sentence)
 
@@ -50,6 +56,23 @@ def normalize_sentence(sentence: str) -> str:
     if sentence:
         sentence = sentence[0].upper() + sentence[1:]
     return sentence
+
+def normalize_unicode(sentence: str) -> str:
+    """ Normalizes given sentence compact NFC unicode """
+    return unicodedata.normalize('NFD', sentence)
+
+def normalize_markers(sentence: str) -> str:
+    """ Normalizes different variants of markers """
+    sentence = re.sub(r'[“”«»]', '"', sentence)
+    sentence = re.sub(r'[‘’`´]', "'", sentence)
+    sentence = re.sub(r'[–—]', '-', sentence)
+    return sentence
+
+def normalize_spaces(sentence: str) -> str:
+    """ Normalizes the amount of spaces between words to one """
+    sentence = re.sub(r'\s+', ' ', sentence).strip()
+    return sentence
+
 
 
 """
