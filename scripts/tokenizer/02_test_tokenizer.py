@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     # Determine path to process fineweb_data
     processed_dir = config.PROCESSED_DATA_DIR
-    prefix = "fineweb_latin_clean.jsonl"
+    prefix = "HuggingFaceFW_fineweb-2_lat_Latn_clean.jsonl"
 
     if not os.path.isfile(os.path.join(processed_dir, prefix)):
         raise RuntimeError(f"[red]The file {os.path.join(processed_dir, prefix)} does not exist!")
