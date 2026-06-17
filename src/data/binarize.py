@@ -51,7 +51,7 @@ def prepare_training_data(dataset_dict: DatasetDict, output_path: str, tokenizer
 
 
 def create_dataset(config: dict) -> DatasetDict:
-    data_path = config["dir_path"]
+    data_path = config["input_dir_path"]
     if not os.path.exists(data_path):
         raise FileNotFoundError(f"[ERROR] '{data_path}' from given config does not exist!")
     all_files = glob(os.path.join(data_path, "*.jsonl"))
@@ -82,7 +82,7 @@ def create_dataset(config: dict) -> DatasetDict:
     eval_set_path = os.path.join(config["output_dir_path"], "eval")
     if not os.path.isdir(eval_set_path):
         os.makedirs(eval_set_path)
-    eval_set.to_json(eval_set_path + "eval_data.json", force_ascii=False)
+    eval_set.to_json(eval_set_path + "/eval_data.json", force_ascii=False)
 
     print(f"[END] Done creating summarized datset dictionary!")
     print(f"-- [INFO] Train: {len(train_set)}")
