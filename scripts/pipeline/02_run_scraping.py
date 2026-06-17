@@ -16,9 +16,9 @@ if __name__ == "__main__":
     print(f"[START] Start scrapers for all implemented websites...")
 
     """ 1. Find all URLs to subpages that are related to 'hebdomadae-papae' """
-    #vatican_subpages = scraper.get_subpages_links(config.VATICAN_BASE_API_URL)
+    vatican_subpages = scraper.get_subpages_links(config.VATICAN_BASE_API_URL)
     """ 2. Scrape each of the found subpages of vatican news for latin data """
-    #scraper.scrape_vatican(vatican_subpages, output_dir)
+    scraper.scrape_vatican(vatican_subpages, output_dir)
 
 
     """ 3. Find all URLS of blog post from 'Nuntii Latini' """
