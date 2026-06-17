@@ -1,27 +1,30 @@
 import os
 from transformers import PreTrainedTokenizerFast
-import src.config as config
-from src.data.binarize import prepare_training_data
+from src.utils.utils import load_yaml_config
+from src.data.binarize import prepare_training_data, create_dataset
 
 if __name__ == "__main__":
 
     # Instantiate tokenizer
-    tokenizer_path = config.TOKENIZER_PATH
+    dataset_config_path = "configs/dataset.yaml"
+    if not os.path.isfile(dataset_config_path):
+        raise FileNotFoundError(f"[ERROR] There is no dataset config file at '{dataset_config_path}'!")
+    dataset_config = load_yaml_config(dataset_config_path)
+
+    tokenizer_path = dataset_config["tokenizer_path"]
+    if not os.path.isfile(tokenizer_path):
+        raise FileNotFoundError(f"[ERROR] There is no tokenizer at '{tokenizer_path}'! Check dataset.yaml!")
+
     tokenizer = PreTrainedTokenizerFast(tokenizer_file=tokenizer_path)
 
-    input_dir = config.PROCESSED_DATA_DIR
-    output_dir = config.TOKENIZED_DATA_DIR
+    input_dir = dataset_config["input_dir_path"]
+    output_dir = dataset_config["output_dir_path"]
 
-    data_files = []
-    for files in os.listdir(input_dir):
-        if files.endswith(".jsonl"):
-            data_files.append(os.path.join(input_dir, files))
+    # 1. Create summarzied dataset-dict with train, test, eval split by arguments from dataset.yaml
+    print(f"[START] Start creating dataset dictionary...")
+    dataset_dict = create_dataset(dataset_config)
 
-    # For each file, call the tokenization and store final results under "data/tokenized"
-    print(f"[START] Start preparing pre-processed data files...")
-    for data_file in data_files:
-        file_name = data_file.split("/")[-1].split(".")[0]
-        target_path = os.path.join(output_dir, file_name)
-        prepare_training_data(data_file, target_path, tokenizer=tokenizer)
-        print(f"-- [INFO] Stored pre-tokenized '{target_path}'")
-    print(f"[END] Finished pre-tokenization of all pre-processed files!")
+    # 2. Pre-tokenize whole dataset
+    print(f"[START] Start pre-tokenizing dataset...")
+    prepare_training_data(dataset_dict, output_dir, tokenizer=tokenizer)
+    print(f"[END] Done tokenizing dataset and stored to '{output_dir}'!")

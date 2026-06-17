@@ -34,7 +34,7 @@ if __name__ == "__main__":
             if (idx + 1) % 100 == 0:
                 samples.append(json.loads(line).get("text", ""))
             idx += 1
-            if idx > 1000:
+            if idx > 1000000:
                 break
 
     # Measure results for each fetched sample
