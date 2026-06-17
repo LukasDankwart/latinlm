@@ -2,7 +2,6 @@ import os
 import requests
 from bs4 import BeautifulSoup
 import json
-from src.data.preprocessing import split_paragraph_to_sentences,clean_paragraph
 import time
 from pathlib import Path
 
@@ -32,12 +31,7 @@ def scrape_vatican_news_page(url: str) -> list[dict]:
         raw_text = p.get_text(strip=True)
         if not raw_text:
             continue
-        sentences = split_paragraph_to_sentences(raw_text)
-        cleaned_sentences = clean_paragraph(sentences)
-        if cleaned_sentences:
-            valid_paragraphs.append(" ".join(cleaned_sentences))
-        else:
-            pass
+        valid_paragraphs.append(raw_text)
 
     for i, p in enumerate(valid_paragraphs):
         wrd_count = len(p.split())
@@ -54,31 +48,35 @@ def scrape_vatican(list_urls: list, output_dir: str) -> None:
     """ Scrapes given list of urls separately """
 
     data = []
+    filename = "vatican_news.jsonl"
+    output_path = os.path.join(output_dir, filename)
+    if Path(output_path).exists():
+        Path(output_path).unlink()
+
     print(f"[START] Scraping given set of urls of vatican news...")
+    wrd_sum = 0
     for idx, url in enumerate(list_urls):
         if idx % 10 == 0:
             print(f"-- {idx} / {len(list_urls)} scraped")
         subpage_data = scrape_vatican_news_page(url)
-        if len(subpage_data) != 0:
-            data.extend(subpage_data)
+        if len(subpage_data) == 0:
+            continue
         time.sleep(1)
-    filename = "vatican_news.jsonl"
-    output_path = os.path.join(output_dir, filename)
+        with open(output_path, mode="a", encoding="utf-8") as f:
+            for page in subpage_data:
+                wrd_sum += page["wrd_cnt"]
+                json_record = {
+                    "url": page["url"],
+                    "paragraph": page["paragraph"],
+                    "wrd_cnt": page["wrd_cnt"],
+                    "text": page["text"]
+                }
+                json_string = json.dumps(json_record, ensure_ascii=False)
+                f.write(json_string + "\n")
+
     print(f"[END] Finished scraping")
     print(f"-- {len(data)} samples have been aggregated \n")
 
-    wrd_sum = 0
-    with open(output_path, mode="w", encoding="utf-8") as f:
-        for page in data:
-            wrd_sum += page["wrd_cnt"]
-            json_record = {
-                "url": page["url"],
-                "paragraph": page["paragraph"],
-                "wrd_cnt": page["wrd_cnt"],
-                "text": page["text"]
-            }
-            json_string = json.dumps(json_record, ensure_ascii=False)
-            f.write(json_string + "\n")
     print(f"[STORED] Results at {output_path}")
     print(f"-- Overall number of words: {wrd_sum}")
 
@@ -146,7 +144,7 @@ def scrape_nuntii_latini_subpages(base_url: str) -> list[str]:
     print(f"[END] Finished scraping URLs to blog posts of Nuntii Latini")
     return nuntii_urls
 
-def scrape_nuntii_latini_blog_post(blog_url: str) -> list[str]:
+def scrape_nuntii_latini_blog_post(blog_url: str) -> list[dict]:
     """ Scrapes one specific blog post side for latin data """
 
     latin_text = []
@@ -164,12 +162,7 @@ def scrape_nuntii_latini_blog_post(blog_url: str) -> list[str]:
         raw_text = p.get_text(strip=True)
         if not raw_text:
             continue
-        sentences = split_paragraph_to_sentences(raw_text)
-        cleaned_sentences = clean_paragraph(sentences)
-        if cleaned_sentences:
-            valid_paragraphs.append(" ".join(cleaned_sentences))
-        else:
-            pass
+        valid_paragraphs.append(raw_text)
 
     for i, p in enumerate(valid_paragraphs):
         wrd_count = len(p.split())
@@ -184,36 +177,37 @@ def scrape_nuntii_latini_blog_post(blog_url: str) -> list[str]:
 def scrape_nuntii_latini(list_urls: list, output_dir: str) -> None:
     """ Scrapes given list of urls separately """
 
-    data = []
     print(f"[START] Scraping given set of urls of Nuntii Latini...")
-    for idx, url in enumerate(list_urls):
-        if idx % 10 == 0:
-            print(f"-- {idx} / {len(list_urls)} scraped")
-        subpage_data = scrape_nuntii_latini_blog_post(url)
-        if len(subpage_data) != 0:
-            data.extend(subpage_data)
-        time.sleep(1)
+    wrd_sum = 0
     filename = "nuntii_latini.jsonl"
-
     output_path = Path(os.path.join(output_dir, filename))
     if output_path.exists():
         output_path.unlink()
 
-    print(f"[END] Finished scraping")
-    print(f"-- {len(data)} samples have been aggregated \n")
-    wrd_sum = 0
-
-    for page in data:
-        wrd_sum += page["wrd_cnt"]
-        json_record = {
-            "url": page["url"],
-            "paragraph": page["paragraph"],
-            "wrd_cnt": page["wrd_cnt"],
-            "text": page["text"]
-        }
-        json_string = json.dumps(json_record, ensure_ascii=False)
+    sample_counter = 0
+    for idx, url in enumerate(list_urls):
+        if idx % 10 == 0:
+            print(f"-- {idx} / {len(list_urls)} scraped")
+        subpage_data = scrape_nuntii_latini_blog_post(url)
+        if len(subpage_data) == 0:
+            continue
+        time.sleep(1)
+        sample_counter += len(subpage_data)
         with open(output_path, mode="a", encoding="utf-8") as f:
-            f.write(json_string + "\n")
+            for page in subpage_data:
+                wrd_sum += page["wrd_cnt"]
+                json_record = {
+                    "url": page["url"],
+                    "paragraph": page["paragraph"],
+                    "wrd_cnt": page["wrd_cnt"],
+                    "text": page["text"]
+                }
+                json_string = json.dumps(json_record, ensure_ascii=False)
+                f.write(json_string + "\n")
+
+    print(f"[END] Finished scraping")
+    print(f"-- {sample_counter} samples have been aggregated \n")
+
     print(f"[STORED] Results at {output_path}")
     print(f"-- Overall number of words: {wrd_sum}")
 
