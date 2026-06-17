@@ -111,7 +111,6 @@ def is_quality_sentence(sentence: str) -> bool:
     detected_language = filter_with_lingua(sentence)
     if detected_language != Language.LATIN:
         return False
-
     return True
 
 
