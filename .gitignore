@@ -12,6 +12,9 @@ build/
 dist/
 *.egg-info/
 .eggs/
+*.pt
+*.pth
+*.safetensors
 
 # ── Virtual envs ─────────────────────────────────────────────────────
 .venv/
@@ -29,6 +32,7 @@ env/
 htmlcov/
 .mypy_cache/
 .ruff_cache/
+wandb/
 
 # ── IDE / Editor ─────────────────────────────────────────────────────────────
 .idea/

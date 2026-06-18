@@ -31,5 +31,5 @@ NUM_CPU_WORKERS = 12
 
 
 # ─── Tokenizer Parameters ────────────────────────────
-TOKENIZER_VOCAB_SIZE = 32000
+TOKENIZER_VOCAB_SIZE = 32768
 TOKENIZER_PATH = "data/tokenized/bpe_tokenizer.json"
