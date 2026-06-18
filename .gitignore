@@ -18,6 +18,10 @@ dist/
 venv/
 env/
 
+# ── Files ─────────────────────────────────────────────────────
+.env
+*.bin
+
 # ── Test / Coverage / Type-Checking ──────────────────────────────────────────
 .pytest_cache/
 .coverage

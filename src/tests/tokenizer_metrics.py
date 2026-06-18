@@ -24,7 +24,7 @@ def evaluate_tokenizer(tokenizer, text):
     compression_rate = num_chars / num_tokens
     single_char_count = 0
     for tid in token_ids:
-        token_string = tokenizer.devoce([tid])
+        token_string = tokenizer.decode([tid])
         clean_token = token_string.strip()
         if len(clean_token) == 1 and clean_token.isalnum():
             single_char_count  += 1
@@ -38,18 +38,5 @@ def evaluate_tokenizer(tokenizer, text):
     }
 
 
-def evaluate():
-    result_folder = "results/"
-    test_data = []
-    # TODO: Find good test data (sentences) with grammar variations, that are not in TRAINED data
-    for (name, tokenizer) in tokenizers:
-        tkz_results = []
-        for sentence in test_data:
-            tkz_results.append(evaluate_tokenizer(tokenizer, sentence))
-        pf = pd.DataFrame(tkz_results)
-        pf.to_csv(f"{result_folder}{name}.csv")
 
-
-if __name__ == "__main__":
-    evaluate()
 

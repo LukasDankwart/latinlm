@@ -1,0 +1,215 @@
+import os
+import requests
+from bs4 import BeautifulSoup
+import json
+import time
+from pathlib import Path
+
+headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+}
+
+"""
+──────────── Vatican News ──────────────────────────────────────
+"""
+
+def scrape_vatican_news_page(url: str) -> list[dict]:
+    """ Scrapes one specific news page specified by function argument """
+
+    latin_text = []
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"[ERROR] Connection failed: {e}")
+        return latin_text
+
+    soup = BeautifulSoup(response.text, 'html.parser')
+    paragraphs = soup.find_all('p')
+    valid_paragraphs = []
+    for i, p in enumerate(paragraphs):
+        raw_text = p.get_text(strip=True)
+        if not raw_text:
+            continue
+        valid_paragraphs.append(raw_text)
+
+    for i, p in enumerate(valid_paragraphs):
+        wrd_count = len(p.split())
+        latin_text.append({
+            "url": url,
+            "paragraph": i,
+            "wrd_cnt": wrd_count,
+            "text": p
+        })
+    return latin_text
+
+
+def scrape_vatican(list_urls: list, output_dir: str) -> None:
+    """ Scrapes given list of urls separately """
+
+    data = []
+    filename = "vatican_news.jsonl"
+    output_path = os.path.join(output_dir, filename)
+    if Path(output_path).exists():
+        Path(output_path).unlink()
+
+    print(f"[START] Scraping given set of urls of vatican news...")
+    wrd_sum = 0
+    for idx, url in enumerate(list_urls):
+        if idx % 10 == 0:
+            print(f"-- {idx} / {len(list_urls)} scraped")
+        subpage_data = scrape_vatican_news_page(url)
+        if len(subpage_data) == 0:
+            continue
+        time.sleep(1)
+        with open(output_path, mode="a", encoding="utf-8") as f:
+            for page in subpage_data:
+                wrd_sum += page["wrd_cnt"]
+                json_record = {
+                    "url": page["url"],
+                    "paragraph": page["paragraph"],
+                    "wrd_cnt": page["wrd_cnt"],
+                    "text": page["text"]
+                }
+                json_string = json.dumps(json_record, ensure_ascii=False)
+                f.write(json_string + "\n")
+
+    print(f"[END] Finished scraping")
+    print(f"-- {len(data)} samples have been aggregated \n")
+
+    print(f"[STORED] Results at {output_path}")
+    print(f"-- Overall number of words: {wrd_sum}")
+
+
+def get_subpages_links(api_url: str) -> list[str]:
+    """ Scrapes specified base url of vatican news to extract all relevant subpages urls """
+
+    params = {
+        "queryroute": "vaticannews-search-main",
+        "q": "hebdomada papae",
+        "fq": "lang_s:it",
+        "sort": "editorial_date_dt desc,id asc",
+        "qId": "8c78f938-3e32-461a-8cf3-a889875adb25",
+        "rows": 50,
+        "start": 0
+    }
+    print(f"[START] Scraping references of vatican news subpages...")
+    all_urls = []
+    while True:
+        print(f"-- Starting from index {params['start']}...")
+        response = requests.get(api_url, headers=headers, params=params)
+        response.raise_for_status()
+        data = response.json()
+        docs = data.get("response", {}).get("docs", [])
+        # If no more docs can be found, stop
+        if not docs:
+            break
+
+        for doc in docs:
+            raw_id = doc.get("id", "")
+            if raw_id:
+                clean_path = raw_id.replace("/content/vaticannews", "")
+                full_url = f"https://www.vaticannews.va{clean_path}.html"
+                all_urls.append(full_url)
+
+        params["start"] += params["rows"]
+
+        time.sleep(1)
+    final_urls = [url for url in all_urls if "hebdomadae-papae" in url or "hebdomada-papae" in url]
+    print(f"[END] Finished scraping references to subpages")
+    print(f"-- {len(final_urls)} references to hebdomadae-papae have been extracted")
+    return final_urls
+
+
+"""
+──────────── Nuntii Latini ──────────────────────────────────────
+"""
+
+def scrape_nuntii_latini_subpages(base_url: str) -> list[str]:
+    """ Designed to scrape all accessible subpages of Nuntii latini posts"""
+
+    page_idx = 2
+    nuntii_urls = []
+    print(f"[START] Scraping URLs to blog posts of Nuntii Latini...")
+    while True:
+        current_url = base_url + f"/{page_idx}/"
+        response = requests.get(current_url, headers=headers)
+        if response.status_code == 404 or page_idx >= 35:
+            break
+        nuntii_urls.append(current_url)
+        page_idx += 1
+        time.sleep(1)
+        if page_idx % 10 == 0:
+            print(f"-- {page_idx} blog posts of Nuntii Latinii found")
+    print(f"[END] Finished scraping URLs to blog posts of Nuntii Latini")
+    return nuntii_urls
+
+def scrape_nuntii_latini_blog_post(blog_url: str) -> list[dict]:
+    """ Scrapes one specific blog post side for latin data """
+
+    latin_text = []
+    try:
+        response = requests.get(blog_url, headers=headers)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"[ERROR] Connection failed: {e}")
+        return latin_text
+
+    soup = BeautifulSoup(response.text, 'html.parser')
+    paragraphs = soup.find_all('p')
+    valid_paragraphs = []
+    for i, p in enumerate(paragraphs):
+        raw_text = p.get_text(strip=True)
+        if not raw_text:
+            continue
+        valid_paragraphs.append(raw_text)
+
+    for i, p in enumerate(valid_paragraphs):
+        wrd_count = len(p.split())
+        latin_text.append({
+            "url": blog_url,
+            "paragraph": i,
+            "wrd_cnt": wrd_count,
+            "text": p
+        })
+    return latin_text
+
+def scrape_nuntii_latini(list_urls: list, output_dir: str) -> None:
+    """ Scrapes given list of urls separately """
+
+    print(f"[START] Scraping given set of urls of Nuntii Latini...")
+    wrd_sum = 0
+    filename = "nuntii_latini.jsonl"
+    output_path = Path(os.path.join(output_dir, filename))
+    if output_path.exists():
+        output_path.unlink()
+
+    sample_counter = 0
+    for idx, url in enumerate(list_urls):
+        if idx % 10 == 0:
+            print(f"-- {idx} / {len(list_urls)} scraped")
+        subpage_data = scrape_nuntii_latini_blog_post(url)
+        if len(subpage_data) == 0:
+            continue
+        time.sleep(1)
+        sample_counter += len(subpage_data)
+        with open(output_path, mode="a", encoding="utf-8") as f:
+            for page in subpage_data:
+                wrd_sum += page["wrd_cnt"]
+                json_record = {
+                    "url": page["url"],
+                    "paragraph": page["paragraph"],
+                    "wrd_cnt": page["wrd_cnt"],
+                    "text": page["text"]
+                }
+                json_string = json.dumps(json_record, ensure_ascii=False)
+                f.write(json_string + "\n")
+
+    print(f"[END] Finished scraping")
+    print(f"-- {sample_counter} samples have been aggregated \n")
+
+    print(f"[STORED] Results at {output_path}")
+    print(f"-- Overall number of words: {wrd_sum}")
+
+
+

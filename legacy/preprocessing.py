@@ -216,10 +216,12 @@ if __name__ == "__main__":
         "verg.html.jsonl",
         "vitruvius.html.jsonl"
     ]
-    for name in names:
+
+
+    """for name in names:
         file_path = os.path.join(input_dir, name)
         filtered_file_path = os.path.join(output_dir, name)
-        process_raw_json(file_path, filtered_file_path)
+        process_raw_json(file_path, filtered_file_path)"""
 
     filtered_words_overall = count_overall_words(output_dir)
     print(f"\n Filtered data contains: {filtered_words_overall} words\n")

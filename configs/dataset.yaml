@@ -1,0 +1,6 @@
+seed: 42
+test_size: 0.02
+eval_size: 0.005
+input_dir_path: "data/processed"
+output_dir_path: "data/tokenized"
+tokenizer_path: "data/tokenized/bpe_tokenizer.json"
