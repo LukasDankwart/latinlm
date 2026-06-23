@@ -20,22 +20,22 @@ tokenizer:
 train:
   output_dir: "./experiments/roberta_run_1"
   eval_strategy: "steps"
-  num_train_epochs: 2
-  max_steps: 2
-  eval_steps: 5000
-  save_steps: 5000
+  num_train_epochs: 1
+  #max_steps: 2
+  eval_steps: 500
+  save_steps: 500
   save_total_limit: 2
   per_device_train_batch_size: 64
   bf16: true
   dataloader_num_workers: 8
-  logging_steps: 100
+  logging_steps: 50
 
 data:
   path: "./data/tokenized"
 
 meta:
   report_to: "wandb"
-  run_name: "run-1-base-124M"
-  project_name: "latin_roberta"
+  run_name: "test-run-1-base-124M_1"
+  project_name: "[midas]_latin_roberta"
   tags: "roberta"
   group: "base_models"
