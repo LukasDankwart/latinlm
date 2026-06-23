@@ -35,6 +35,8 @@ latinlm/
 ├── data                # Is exluded from git! Will be created if the datapipeline is executed
 ├── scripts             # Python scripts to be exectued (e.g., datapipeline, train scripts...)
 ├── src                 # Implementation of functions / classes used by scripts
+├── experimens          # Stores checkpoints of training approaches
+├── configs             # Stores different .yaml configs of models to be trained
 ```
 
 ### 2.1 Data-Pipeline
@@ -60,5 +62,23 @@ The complete datapipeline will create three subdirectories in the 'data' folder:
 ├── data                
     ├── processed       # Stores .jsonl with pre-processed data for each source
     ├── raw             # Stores .jsonl with raw data for each source
-    └── tokenized       # Stores one summarized .jsonl in tokenized representation of all data            
+    └── tokenized       # Stores the differents splits of the dataset as .arrow formats          
 ```
+
+### 2.2 Tokenizer
+The script for training the tokenizer is designed to take all data available in your local "./data/processed/" directory. 
+Currently, the script does train a standard BPE tokenizer and stores the final .json file at "./data/bpe_tokenizer.json".
+The script can be run by using:
+```
+uv run python -m scripts.run_tokenizer     
+
+# You can either skip the training or evaluation process, where some statistics are taken from the trained tokenizer
+uv run python -m scripts.run_tokenizer --skip-train  # (does require an trained tokenizer for evaluation)
+uv run python -m scripts.run_tokenizer --skip-eval # (does require pre-running datapipeline for data/processed directory)
+```
+
+**Note** - Currently the tokenizer training is not included into the datapipeline yet.  
+
+### 2.3 Training
+Currently, the training script is designed to train a RoBERTa variant in order to access the current state of the datapipeline.
+Still in progress.
