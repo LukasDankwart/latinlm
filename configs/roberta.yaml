@@ -18,24 +18,28 @@ tokenizer:
   eos_token: "</s>"
 
 train:
-  output_dir: "./experiments/roberta_run_1"
+  output_dir: "./experiments/roberta_run_2"
   eval_strategy: "steps"
-  num_train_epochs: 1
-  #max_steps: 2
-  eval_steps: 500
-  save_steps: 500
-  save_total_limit: 2
-  per_device_train_batch_size: 64
+  save_strategy: "steps"
+  num_train_epochs: 10
+  eval_steps: 250
+  save_steps: 250
+  save_total_limit: 3
+  per_device_train_batch_size: 128
   bf16: true
   dataloader_num_workers: 8
   logging_steps: 50
+  # Checkpoint policy
+  load_best_model_at_end: true
+  metric_for_best_model: "eval_loss"
+  greater_is_better: false
 
 data:
   path: "./data/tokenized"
 
 meta:
   report_to: "wandb"
-  run_name: "test-run-1-base-124M_1"
+  run_name: "run-2-base-124M_1_epochs10"
   project_name: "[midas]_latin_roberta"
   tags: "roberta"
   group: "base_models"

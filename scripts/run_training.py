@@ -3,6 +3,7 @@ from rich.panel import Panel
 from rich.console import Console
 from rich.prompt import Confirm
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
+import os
 
 from src.utils.script_utils import run_subscript
 
@@ -23,8 +24,8 @@ def main():
 
     # 1. Step: ───────── Train RoBERTa ───────────────
     if args.train_roberta:
-        confirm_config = Confirm.ask("[yellow] Does the config file for RoBERTa exists at 'configs/roberta.yaml'?")
-        if confirm_config:
+        config_path = "configs/roberta.yaml"
+        if os.path.exists(config_path):
             with Progress(
                     SpinnerColumn(),
                     TextColumn("[progress.description]{task.description}"),
