@@ -13,39 +13,57 @@ def perplexity_score(
         texts: List[str],
         batch_size: int=16
 ) -> float:
-    """ Computes the perplexity score for the model over the given eval texts """
+    """ 
+    Computes the pseudo-perplexity score for the MLM over the given eval texts.
+    Correctly applies MLM masking and ignores unmasked tokens.
+    """
     model.eval()
 
+    data_collator = DataCollatorForLanguageModeling(
+        tokenizer=tokenizer,
+        mlm=True,
+        mlm_probability=0.15
+    )
+
     total_loss = 0.0
-    total_tokens = 0
+    total_batches = 0
 
     with torch.no_grad():
         for i in range(0, len(texts), batch_size):
             batch_texts = texts[i: i + batch_size]
 
-            inputs = tokenizer(
+            encoded = tokenizer(
                 batch_texts,
                 return_tensors="pt",
                 padding=True,
                 truncation=True,
-                max_length=512
+                max_length=512,
+                return_special_tokens_mask=True
             )
 
-            inputs["labels"] = inputs["input_ids"].clone()
-            inputs = {k: v.to(model.device) for k, v in inputs.items()}
-            outputs = model(**inputs)
-            loss = outputs.loss
-            num_tokens = inputs["attention_mask"].sum().item()
-            total_loss += loss.item() * num_tokens
-            total_tokens += num_tokens
+            input_ids, labels = data_collator.torch_mask_tokens(
+                encoded["input_ids"].clone(),
+                encoded.get("special_tokens_mask")
+            )
 
-    if total_tokens == 0:
+            inputs = {
+                "input_ids": input_ids.to(model.device),
+                "attention_mask": encoded["attention_mask"].to(model.device),
+                "labels": labels.to(model.device)
+            }
+
+            outputs = model(**inputs)
+            
+            if outputs.loss is not None:
+                total_loss += outputs.loss.item()
+                total_batches += 1
+
+    if total_batches == 0:
         return float("inf")
 
-    average_loss = total_loss / total_tokens
+    average_loss = total_loss / total_batches
     perplexity = math.exp(average_loss)
-    return perplexity
-
+    return round(perplexity, 4)
 
 def top_k_accuracies(
         model: PreTrainedModel,
@@ -57,55 +75,66 @@ def top_k_accuracies(
 ) -> Tuple[float, float]:
     """ Calculates top k accuracies for the given eval texts """
     model.eval()
-
-    # Masking
+    
     data_collator = DataCollatorForLanguageModeling(
-        tokenizer=tokenizer,
-        mlm=True,
-        mlm_probability=mlm_probability,
+        tokenizer=tokenizer, 
+        mlm=True, 
+        mlm_probability=0.15
     )
+    
     total_masked_tokens = 0
     top_1_correct = 0
     top_k_correct = 0
+    
     with torch.no_grad():
         for i in range(0, len(texts), batch_size):
-            batch_texts = texts[i: i + batch_size]
-
+            batch_texts = texts[i : i + batch_size]
+            
             encoded_inputs = tokenizer(
-                batch_texts,
-                padding=True,
-                truncation=True,
+                batch_texts, 
+                padding=True, 
+                truncation=True, 
                 max_length=512,
-                return_special_tokens_mask=True
+                return_special_tokens_mask=True,
+                return_tensors="pt"
             )
-            features = [
-                {key: val[j] for key, val in encoded_inputs.items()}
-                for j in range(len(batch_texts))
-            ]
-
-            collated_batch = data_collator(features)
-            inputs = {key: val.to(model.device) for key, val in collated_batch.items()}
-            # Calling inference
+            
+            input_ids, labels = data_collator.torch_mask_tokens(
+                encoded_inputs["input_ids"].clone(), 
+                encoded_inputs.get("special_tokens_mask")
+            )
+            
+            inputs = {
+                "input_ids": input_ids.to(model.device),
+                "attention_mask": encoded_inputs["attention_mask"].to(model.device),
+                "labels": labels.to(model.device)
+            }
+            
             outputs = model(**inputs)
-            logits = outputs.logits
-            labels = inputs["labels"]
-            mask = labels != -100
-
-            masked_logits = logits[mask]  # Shape of [masks, vocab_size]
-            masked_labels = labels[mask]
-
+            logits = outputs.logits  # Shape: [Batch_size, Seq_len, Vocab_size]
+            
+            mask = inputs["labels"] != -100
+            
+            masked_logits = logits[mask] 
+            masked_labels = inputs["labels"][mask] 
+            
             if masked_labels.numel() == 0:
-                continue
-
+                continue 
+                
+            total_masked_tokens += masked_labels.numel()
+            
             _, top_k_indices = torch.topk(masked_logits, k, dim=-1)
+            
             top_1_correct += (top_k_indices[:, 0] == masked_labels).sum().item()
-
             top_k_correct += (top_k_indices == masked_labels.unsqueeze(-1)).sum().item()
 
     if total_masked_tokens == 0:
-        return 0.0, 0.0
-    return round(top_1_correct / total_masked_tokens, 4), round(top_k_correct / total_masked_tokens, 4)
-
+        return {"top_1_accuracy": 0.0, f"top_{k}_accuracy": 0.0}
+        
+    return {
+        "top_1_accuracy": round(top_1_correct / total_masked_tokens, 4),
+        f"top_{k}_accuracy": round(top_k_correct / total_masked_tokens, 4)
+    }
 
 def extract_sentence_embeddings(
         model: PreTrainedModel,

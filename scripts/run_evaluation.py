@@ -34,7 +34,7 @@ def main():
                 TimeElapsedColumn(),
                 console=console,
         ) as progress:
-            roberta_task = progress.add_task(f"[cyan] 1. Eavluation of RoBERTa at checkpoint '{checkpoint_path}' [/cyan]",)
+            roberta_task = progress.add_task(f"[cyan] 1. Evaluation of RoBERTa at checkpoint '{checkpoint_path}' [/cyan]",)
             extra_args = ["--set-checkpoint", args.set_checkpoint]
             run_subscript(console,
                           "scripts.evaluation.01_eval_roberta",

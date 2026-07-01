@@ -18,7 +18,8 @@ def load_json_data(json_path: str) -> List[str]:
         raise RuntimeError(f"[ERROR] Given path '{json_path}' to json data file is invalid.")
     texts = []
     with open(json_path, "r", encoding="utf-8") as file:
-        data = json.loads(json_path)
-        for sample in data:
-            texts.append(sample["text"])
+        for line in file:
+            if line.strip():
+                row_dict = json.loads(line.strip())
+                texts.append(row_dict["text"])
     return texts
