@@ -17,6 +17,7 @@ dependencies = [
     "transformers>=5.12.1",
     "accelerate>=1.14.0",
     "wandb>=0.27.2",
+    "conllu>=6.0.0",
 ]
 
 [tool.uv.sources]

@@ -14,6 +14,9 @@ def main():
 
     # ──────────────── Parser Arguments ────────────────
     parser.add_argument("--train-roberta", action="store_true", help="Training of RoBERTa")
+    parser.add_argument("--train-roberta-pos", action="store_true", help="Train class head on RoBERTa for pos")
+    parser.add_argument("--set-checkpoint", type=str, default=None, help="Specify checkpoint for POS tagging")
+    parser.add_argument("--freeze-base", action="store_true", help="Does freeze all RoBERTa weights")
 
     args = parser.parse_args()
     console.print(Panel.fit("[bold magenta] LatinLM - Model Training [/bold magenta]"))
@@ -38,10 +41,46 @@ def main():
                                 total=1, completed=1)
         else:
             console.print(f"[red] Training aborted. Please create a model config file at 'configs/roberta.yaml'!")
+    if args.train_roberta_pos:
+        # Check if checkpoint is given and valid
+        if not args.set_checkpoint:
+            console.print(f"[red] You have to set a checkpoint for starting POS learning by --set-checkpoint=...")
+            return
+        if not os.path.exists(args.set_checkpoint):
+            console.print(f"[red] Given checkpoint path '{args.set_checkpoint}' is invalid!")
+            return
+
+        config_path = "configs/roberta_pos.yaml"
+        if os.path.exists(config_path):
+            with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    TimeElapsedColumn(),
+                    console=console,
+            ) as progress:
+
+                roberta_task = progress.add_task(
+                    f"[cyan] 1. POS-Training of RoBERTa from checkpoint '{args.set_checkpoint}' [/cyan]", )
+
+                extra_args = ["--set-checkpoint", args.set_checkpoint]
+                if args.freeze_base:
+                    extra_args.extend(["--freeze-base" , "true"])
+
+                run_subscript(console,
+                              "scripts.training.02_train_roberta_pos",
+                              "POS-Training",
+                              progress,
+                              extra_args=extra_args)
+                progress.update(roberta_task, description=f"[green]✓ 1. POS-Training of RoBERTa successful![/green]",
+                                total=1, completed=1)
+        else:
+            console.print(f"[red] Training aborted. Please create a model config file at 'configs/roberta_pos.yaml'!")
+
     else:
         console.print(f"[yellow]>> No model selected for training![/yellow]")
         console.print(f"[yellow]>> Choose one of the following options:[/yellow]")
-        console.print(f"[yellow]  --train-roberta [/yellow]")
+        console.print(f"[yellow]  --train-roberta (# Pre-Trains RoBERTa)[/yellow]")
+        console.print(f"[yellow]  --train-roberta-pos (# Trains RoBERTa checkpoint for POS tagging) [/yellow]")
 
 
 if __name__ == "__main__":
