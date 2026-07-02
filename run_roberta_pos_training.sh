@@ -46,4 +46,4 @@ echo "GPU $1 seems to be free! Starting script on specified GPU=$1..."
 
 export CUDA_VISIBLE_DEVICES="$REAL_GPU_ID"
 
-nice -n 10 uv run python -m scripts.run_training --train_roberta_pos --set-checkpoint="experiments/roberta_run_2/checkpoint-109000" --freeze-base
+nice -n 10 uv run python -m scripts.run_training --train-roberta-pos --set-checkpoint="experiments/roberta_run_2/checkpoint-109000"
