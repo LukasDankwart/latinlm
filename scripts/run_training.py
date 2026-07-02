@@ -17,6 +17,7 @@ def main():
     parser.add_argument("--train-roberta-pos", action="store_true", help="Train class head on RoBERTa for pos")
     parser.add_argument("--set-checkpoint", type=str, default=None, help="Specify checkpoint for POS tagging")
     parser.add_argument("--freeze-base", action="store_true", help="Does freeze all RoBERTa weights")
+    parser.add_argument("--set-dataset", type=str, default=None, help="Specify which dataset should be used.")
 
     args = parser.parse_args()
     console.print(Panel.fit("[bold magenta] LatinLM - Model Training [/bold magenta]"))
@@ -49,9 +50,15 @@ def main():
         if not os.path.exists(args.set_checkpoint):
             console.print(f"[red] Given checkpoint path '{args.set_checkpoint}' is invalid!")
             return
+        if not args.set_dataset:
+            console.print(f"[red] No dataset was given. Use --set-dataset=... to one of the following names: ")
+            console.print(f"[red] 'perseus', 'proiel', 'ittb' ")
+            return
+        if args.set_dataset not in ['perseus', 'proiel', 'ittb']:
+            console.print(f"[red] Given dataset name is invalid. Please use: 'perseus', 'proiel' or 'ittb' ")
 
-        config_path = "configs/roberta_pos.yaml"
-        if os.path.exists(config_path):
+
+        if os.path.exists("configs/roberta_pos_freezed.yaml") or os.path.exists("configs/roberta_pos_full_ft.yaml"):
             with Progress(
                     SpinnerColumn(),
                     TextColumn("[progress.description]{task.description}"),
@@ -62,7 +69,7 @@ def main():
                 roberta_task = progress.add_task(
                     f"[cyan] 1. POS-Training of RoBERTa from checkpoint '{args.set_checkpoint}' [/cyan]", )
 
-                extra_args = ["--set-checkpoint", args.set_checkpoint]
+                extra_args = ["--set-checkpoint", args.set_checkpoint, "--set-dataset", args.set_dataset]
                 if args.freeze_base:
                     extra_args.extend(["--freeze-base" , "true"])
 
@@ -74,7 +81,9 @@ def main():
                 progress.update(roberta_task, description=f"[green]✓ 1. POS-Training of RoBERTa successful![/green]",
                                 total=1, completed=1)
         else:
-            console.print(f"[red] Training aborted. Please create a model config file at 'configs/roberta_pos.yaml'!")
+            console.print(f"[red] Training aborted. Please create a model config file!")
+            console.print(f"[red] -- For Full-Finetuning: configure 'configs/roberta_pos_full_ft.yaml'")
+            console.print(f"[red] -- For only training Classification-Head: configure 'configs/roberta_pos_freezed.yaml'")
 
     else:
         console.print(f"[yellow]>> No model selected for training![/yellow]")

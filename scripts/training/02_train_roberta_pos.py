@@ -1,6 +1,5 @@
 import argparse
 import os
-
 import numpy as np
 from conllu import parse
 from transformers import logging as hf_logging
@@ -10,7 +9,6 @@ from datasets import load_dataset, load_from_disk, Dataset, DatasetDict
 from rich.console import Console
 from transformers import (
     AutoTokenizer,
-    AutoModelForTokenClassification,
     TrainingArguments,
     Trainer,
     DataCollatorForTokenClassification
@@ -22,10 +20,13 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--set-checkpoint", type=str)
     parser.add_argument("--freeze-base", type=str)
+    parser.add_argument("--set-dataset", type=str)
 
     args, unknown_args = parser.parse_known_args()
     if not args.set_checkpoint:
         raise FileNotFoundError(f"[yellow]>> Invalid or no checkpoint path is specified! [/yellow]")
+    if not args.set_dataset:
+        raise RuntimeError(f"[yellow]>> Invalid or no dataset was specified! [/yellow]")
 
     return args
 
@@ -49,6 +50,30 @@ def compute_metrics(eval_preds):
     accuracy = sum(p == l for p, l in zip(flat_preds, flat_labels)) / len(flat_labels)
     return {"accuracy": accuracy}
 
+def load_paths(dataset_name: str) -> dict:
+    """ Does the mapping to hardcoded paths for each different dataset for POS tagging """
+    if dataset_name == "ittb":
+        paths = {
+            "train": "data/ud/ittb/la_ittb-ud-train.conllu",
+            "validation": "data/ud/ittb/la_ittb-ud-dev.conllu",
+            "test": "data/ud/ittb/la_ittb-ud-test.conllu"
+        }
+    elif dataset_name == "proiel":
+        paths = {
+            "train": "data/ud/proiel/la_proiel-ud-train.conllu",
+            "validation": "data/ud/proiel/la_proiel-ud-dev.conllu",
+            "test": "data/ud/proiel/la_proiel-ud-test.conllu"
+        }
+    elif dataset_name == "perseus":
+        paths = {
+            "train": "data/ud/proiel/la_proiel-ud-train.conllu",
+            "test": "data/ud/proiel/la_proiel-ud-test.conllu"
+        }
+    else:
+        raise RuntimeError(f"[red] Given dataset name '{dataset_name}' is invalid. Must be 'perseus', 'proiel' or 'ittb'")
+    return paths
+
+
 def main():
     console = Console()
     hf_logging.set_verbosity_warning()
@@ -62,25 +87,23 @@ def main():
     print(f"[yellow] -- [INFO] Model config successfully loaded from '{config_path}'")
 
     # 3. Step: ───── Ensure data from Universal Dependency Datasets exists, otherwise download it ─────
-    data_path = model_config["data"]["path"]
+    dataset_name = args.set_dataset
+    #data_path = model_config["data"]["path"] + f"/{dataset_name}"
+    data_path = os.path.join(model_config["data"]["path"] , f"{dataset_name}")
     if not os.path.exists(data_path):
         print(f"[yellow] -- [INFO] Data for POS-Tagging does not exists at '{data_path}'")
-        if not os.path.exists("./data/ud"):
-            print(f"[red] -- [ERROR] Please download the .conllu files of the UD GitHub repo and store them at './data/ud'.. [/red]")
+        if not os.path.exists(f"./data/ud/{dataset_name}"):
+            print(f"[red] -- [ERROR] Please download the .conllu files of the UD GitHub repos and store them at './data/ud'.. [/red]")
             urls = {
-                "train": "https://raw.githubusercontent.com/UniversalDependencies/UD_Latin-ITTB/master/la_ittb-ud-train.conllu",
-                "validation": "https://raw.githubusercontent.com/UniversalDependencies/UD_Latin-ITTB/master/la_ittb-ud-dev.conllu",
-                "test": "https://raw.githubusercontent.com/UniversalDependencies/UD_Latin-ITTB/master/la_ittb-ud-test.conllu"
+                "Perseus": "https://github.com/UniversalDependencies/UD_Latin-Perseus",
+                "PROIEL": "https://github.com/UniversalDependencies/UD_Latin-PROIEL",
+                "ITTB": "https://github.com/UniversalDependencies/UD_Latin-ITTB"
             }
             print(f"-- [red] {urls} [/red]")
         try:
             data_dict = {}
             all_labels = set()
-            paths = {
-                "train": "data/ud/la_ittb-ud-train.conllu",
-                "validation": "data/ud/la_ittb-ud-dev.conllu",
-                "test": "data/ud/la_ittb-ud-test.conllu"
-            }
+            paths = load_paths(dataset_name)
             for split, path in paths.items():
                 print(f"-- [INFO] Processing {split}-split from '{path}'...")
                 with open(path, "r", encoding="utf-8") as f:
@@ -97,6 +120,15 @@ def main():
                 data_dict[split] = Dataset.from_dict({"tokens": tokens_list, "upos": upos_list})
 
             dataset = DatasetDict(data_dict)
+            if "validation" not in dataset:
+                print(f"[yellow] -- [INFO] No validation set by default. Splitting 10% of train data for validation.")
+                split_dataset = dataset["train"].train_test_split(test_size=0.1, seed=42)
+                dataset = DatasetDict({
+                    "train": split_dataset["train"],
+                    "validation": split_dataset["test"],
+                    "test": dataset["test"]
+                })
+
             label_list = sorted(list(all_labels))
             dataset.save_to_disk(data_path)
             print(f"[yellow] -- [INFO] Successfully downloaded data for POS tagging, stored at '{data_path}'")
@@ -150,8 +182,35 @@ def main():
     print(f"[yellow] -- [INFO] Label alignment performed successfully")
 
     # 5. Step:  ───── Preparing data ─────
+    meta_config = model_config["meta"]
+    report_to = meta_config["report_to"]
     training_config = model_config["train"]
-    training_args = TrainingArguments(**training_config)
+
+    output_dir_path = training_config["output_dir"] + f"/{dataset_name}"
+    training_config["output_dir"] = output_dir_path
+
+    training_args = TrainingArguments(
+        **training_config,
+        report_to=report_to
+    )
+
+    print(f"[yellow] -- [INFO] Initialized Trainer successfully")
+
+    if report_to is not None:
+        if report_to == "wandb":
+            # Expand project name by current dataset_name
+            meta_config["run_name"] = meta_config["run_name"] + f"_{dataset_name}"
+            wandb.init(
+                project=meta_config["project_name"],
+                name=meta_config["run_name"],
+                tags=meta_config["tags"],
+                group=meta_config["group"],
+            )
+            training_config["report_to"] = meta_config["report_to"]
+            training_config["run_name"] = meta_config["run_name"]
+            print(f"[yellow] -- [INFO] Training procedure will be reported to '{report_to}'!")
+
+    print(f"[yellow] -- [INFO] Starting train procedure...")
 
     train_dataset = tokenized_datasets["train"]
     val_dataset = tokenized_datasets["validation"]
@@ -164,23 +223,7 @@ def main():
         eval_dataset=val_dataset,
         compute_metrics=compute_metrics
     )
-    print(f"[yellow] -- [INFO] Initialized Trainer successfully")
 
-    meta_config = model_config["meta"]
-    report_to = meta_config["report_to"]
-    if report_to is not None:
-        if report_to == "wandb":
-            wandb.init(
-                project=meta_config["project_name"],
-                name=meta_config["run_name"],
-                tags=meta_config["tags"],
-                group=meta_config["group"],
-            )
-            training_config["report_to"] = meta_config["report_to"]
-            training_config["run_name"] = meta_config["run_name"]
-            print(f"[yellow] -- [INFO] Training procedure will be reported to '{report_to}'!")
-
-    print(f"[yellow] -- [INFO] Starting train procedure...")
     trainer.train()
 
     if report_to is not None:
