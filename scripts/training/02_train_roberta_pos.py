@@ -82,7 +82,7 @@ def main():
     args = parse_args()
 
     # 2. Step: ───── Load model config file ─────
-    config_path = "configs/roberta_pos_full_ft.yaml" if args.freeze_base == "true" else "configs/roberta_pos_freezed.yaml"
+    config_path = "configs/roberta_pos_full_ft.yaml" if not args.freeze_base == "true" else "configs/roberta_pos_freezed.yaml"
     model_config = load_yaml_config(config_path)
     print(f"[yellow] -- [INFO] Model config successfully loaded from '{config_path}'")
 
