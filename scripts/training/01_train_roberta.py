@@ -70,7 +70,10 @@ def main():
             training_config["run_name"] = meta_config["run_name"]
             print(f"[yellow] -- [INFO] Training procedure will be reported to '{report_to}'!")
 
-    training_args = TrainingArguments(**training_config)
+    training_args = TrainingArguments(
+        **training_config,
+        report_to = report_to
+    )
     print(f"[yellow] -- [INFO] Fetched training arguments successfully...")
 
     trainer = Trainer(

@@ -53,12 +53,13 @@ def main():
     console = Console()
     hf_logging.set_verbosity_warning()
 
-    # 1. Step: ───── Load model config file ─────
-    model_config = load_yaml_config("configs/roberta_pos.yaml")
-    print(f"[yellow] -- [INFO] Model config successfully loaded...")
-
-    # 2. Step: ───── Parse args ─────
+    # 1. Step: ───── Parse args ─────
     args = parse_args()
+
+    # 2. Step: ───── Load model config file ─────
+    config_path = "configs/roberta_pos_full_ft.yaml" if args.freeze_base == "true" else "configs/roberta_pos_freezed.yaml"
+    model_config = load_yaml_config(config_path)
+    print(f"[yellow] -- [INFO] Model config successfully loaded from '{config_path}'")
 
     # 3. Step: ───── Ensure data from Universal Dependency Datasets exists, otherwise download it ─────
     data_path = model_config["data"]["path"]

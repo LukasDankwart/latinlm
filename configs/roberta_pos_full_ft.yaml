@@ -18,7 +18,7 @@ tokenizer:
   eos_token: "</s>"
 
 train:
-  output_dir: "./experiments/roberta_run_2_pos_unfreezed"
+  output_dir: "./experiments/roberta_run_2_pos_full_ft"
   eval_strategy: "epoch"
   save_strategy: "epoch"
   num_train_epochs: 5
@@ -29,7 +29,7 @@ train:
   per_device_eval_batch_size: 64
   bf16: true
   dataloader_num_workers: 8
-  logging_steps: 50
+  logging_steps: 5
   # Learningrate parameters
   learning_rate: 2.0e-5
   weight_decay: 0.01
@@ -44,7 +44,7 @@ data:
 
 meta:
   report_to: "wandb"
-  run_name: "run-3-base-124M_1_pos_tagging_unfreezed"
+  run_name: "run-3-base-124M_1_pos_tagging_full_ft"
   project_name: "[midas]_latin_roberta"
   tags: "roberta"
   group: "base_models"
