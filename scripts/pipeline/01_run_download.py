@@ -1,7 +1,7 @@
 import os
 
 import src.config as config
-from src.data.download import stream_and_sample_dataset
+from src.data.download import stream_and_sample_dataset, filter_grela
 import re
 
 """ 
@@ -25,3 +25,21 @@ if __name__ == "__main__":
         stream_and_sample_dataset(name, subset, output_filename, num_samples)
 
     print(f"[END] Downloading datasets specified in config.DATASETS_TO_DOWNLOAD! \n")
+
+    print(f"[START] Processing pre-downloaded datasets...")
+    preloaded_datasets = config.PRELOADED_DATASETS
+    for dataset in preloaded_datasets:
+        name = dataset["name"]
+        path = dataset["path"]
+
+        if not os.path.exists(path):
+            print(f"-- [INFO] Path for dataset '{name}' does not exist at specified path! '{name}' will be skipped!")
+            print(f"-- [INFO] Pre-downloaded datasets need to be manually downloaded before running the datapipeline")
+            print(f"-- [INFO] Please have a look at the README.md to check if all steps are fulfilled! \n")
+
+        print(f"[START] progressing '{name}'...")
+
+        # Call individual handler for each predownloaded dataset
+        if name == "GreLa":
+            filter_grela(path_to_db=path)
+        print(f"[END] Done processing '{name}'")

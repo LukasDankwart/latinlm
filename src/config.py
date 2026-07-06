@@ -21,6 +21,14 @@ DATASETS_TO_DOWNLOAD = [
 ]
 DATASETS_SAMPLE_LIMIT = None
 
+
+PRELOADED_DATASETS = [
+    {
+        "name": "GreLa",
+        "path": "data/raw/grela/grela_v0.6.duckdb"
+    }
+]
+
 NUNTII_BASE_URL = "https://nuntiilatini.com/page/"
 VATICAN_BASE_API_URL = "https://www.vaticannews.va/bin/servlet/solr/search"
 
