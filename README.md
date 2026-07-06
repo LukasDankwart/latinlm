@@ -126,6 +126,7 @@ best model variant are as follows:
 | *Perseus* | *PROIEL*  | *ITTB*    |
 |:----------|:----------|:----------|
 | **95.01** | **94.83** | **98.11** |
+
 *Eval accuracies of each dataset by Full-FT approach*
 
 ### Bash Scripts
