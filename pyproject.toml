@@ -19,6 +19,8 @@ dependencies = [
     "wandb>=0.27.2",
     "conllu>=6.0.0",
     "duckdb>=1.5.4",
+    "cltk>=1.5.0",
+    "lxml>=6.1.1",
 ]
 
 [tool.uv.sources]

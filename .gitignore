@@ -32,6 +32,7 @@ env/
 *.json
 *.arrow
 *.bz2
+*.zip
 
 # ── Test / Coverage / Type-Checking ──────────────────────────────────────────
 .pytest_cache/

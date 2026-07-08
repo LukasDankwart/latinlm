@@ -1,7 +1,7 @@
 import os
 
 import src.config as config
-from src.data.download import stream_and_sample_dataset, filter_grela
+from src.data.download import stream_and_sample_dataset, filter_grela, load_cltk_datasets, download_canonical_latin
 import re
 
 """ 
@@ -19,6 +19,13 @@ if __name__ == "__main__":
     num_samples = config.DATASETS_SAMPLE_LIMIT
     for dataset in config.DATASETS_TO_DOWNLOAD:
         name = dataset.get("name")
+
+        # For cltk, a different method is used
+        if name == "cltk":
+            subsets = dataset.get("subset")
+            load_cltk_datasets(subsets, output_dir)
+            continue
+
         subset = dataset.get("subset")
         output_filename = f"{name}_{subset}.jsonl" if subset is not None else f"{name}.jsonl"
         output_filename = re.sub('/', '_', output_filename)
@@ -37,9 +44,13 @@ if __name__ == "__main__":
             print(f"-- [INFO] Pre-downloaded datasets need to be manually downloaded before running the datapipeline")
             print(f"-- [INFO] Please have a look at the README.md to check if all steps are fulfilled! \n")
 
-        print(f"[START] progressing '{name}'...")
+        print(f"\n [START] progressing '{name}'...")
 
         # Call individual handler for each predownloaded dataset
         if name == "GreLa":
             filter_grela(path_to_db=path)
+
+        if name == "canonical-latinLit":
+            download_canonical_latin(repo_path=path, output_dir=output_dir)
+
         print(f"[END] Done processing '{name}'")

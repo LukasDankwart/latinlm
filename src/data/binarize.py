@@ -1,6 +1,5 @@
-import os
-
 from datasets import load_dataset, DatasetDict
+import os
 from transformers import PreTrainedTokenizerFast
 import src.config as config
 from glob import glob

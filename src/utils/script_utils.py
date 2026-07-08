@@ -4,6 +4,7 @@ from typing import Tuple
 
 import torch
 from transformers import AutoModelForMaskedLM, AutoTokenizer
+import traceback
 
 def run_subscript(console, script_path, step_name: str, progress, extra_args: list = None) -> None:
     """ Runs a specified extern python script as subprocess and catches exceptions"""

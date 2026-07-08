@@ -1,10 +1,14 @@
 import os
 import json
+
+from bs4 import BeautifulSoup
 from datasets import load_dataset
 import src.config as config
 from pathlib import Path
 import duckdb
 import traceback
+from cltk.data.fetch import FetchCorpus
+from git import Repo
 
 def stream_and_sample_dataset(
         dataset_name: str,
@@ -103,6 +107,91 @@ def filter_grela(path_to_db: str, output_dir: str = "data/raw") -> None:
     finally:
         if 'conn' in locals():
             conn.close()
+
+
+def load_cltk_datasets(corpora_to_download: list[str], output_dir: str = "data/raw/"):
+    corpus_downloader = FetchCorpus(language="lat")
+    print(f"-- [INFO] Number of Corpora from CLTK: {corpus_downloader.list_corpora}")
+
+    for corpus in corpora_to_download:
+        print(f"-- [INFO] Downloading {corpus}")
+        corpus_downloader.import_corpus(corpus)
+
+    cltk_base_dir = os.path.expanduser("~/cltk_data/lat/text")
+    output_path = os.path.join(output_dir, "cltk_data.jsonl")
+    if os.path.isfile(output_path):
+        Path(output_path).unlink()
+    processed_files = 0
+    with open(output_path, "a", encoding="utf-8") as outfile:
+        for root, dirs, files in os.walk(cltk_base_dir):
+            for file in files:
+                if file.endswith((".txt", ".tess")) and not file.startswith("."):
+                    file_path = os.path.join(root, file)
+                    try:
+                        with open(file_path, "r", encoding="utf-8") as infile:
+                            content = infile.read().strip()
+                            if len(content) > 50:
+                                corpus_name = os.path.basename(os.path.dirname(root))
+                                author_or_folder = os.path.basename(root)
+                                data = {
+                                    "text": content,
+                                    "meta": {
+                                        "corpus": corpus_name,
+                                        "author_folder": author_or_folder,
+                                        "filename": file
+                                    }
+                                }
+                                outfile.write(json.dumps(data, ensure_ascii=False) + "\n")
+                                processed_files += 1
+
+                    except Exception as e:
+                        print(f"[ERROR] Couldn't read  {file}: {e}")
+
+
+def download_canonical_latin(repo_path: str, output_dir: str = "data/raw"):
+    """ Aggregates all texts from repo clone of canonical latin """
+    # If path does not exist, the repository is cloned at the specified path
+    if not os.path.isdir(repo_path):
+        repo_url = "https://github.com/PerseusDL/canonical-latinLit.git"
+        target_dir = os.path.join(output_dir, "canonical-latinLit")
+        Repo.clone_from(repo_url, target_dir)
+        print(f"-- [INFO] Start cloning repository at '{output_dir}'...")
+    print(f"-- [INFO] Repository exsits at '{repo_path}'")
+
+    output_path = os.path.join(output_dir, "canonical_latin.jsonl")
+    if os.path.isfile(output_path):
+        Path(output_path).unlink()
+
+    with open(output_path, "a", encoding="utf-8") as out:
+        for root, dirs, files in os.walk(repo_path):
+            for file in files:
+                if file.endswith(".xml") and not file.startswith("__"):
+                    filepath = os.path.join(root, file)
+                    clean_text = extract_text_from_tei(filepath)
+                    if clean_text and len(clean_text) > 50:
+                        json_line = json.dumps({"text": clean_text, "source": file})
+                        out.write(json_line + "\n")
+
+
+def extract_text_from_tei(xml_filepath):
+    """ Extracts text from given XML file """
+    try:
+        with open(xml_filepath, "r", encoding="utf-8") as file:
+            soup = BeautifulSoup(file, "lxml-xml")
+            body = soup.find("body")
+            if not body:
+                return None
+            raw_text = body.get_text(separator=" ", strip=True)
+            return raw_text
+    except Exception as e:
+        print(f"[ERROR] At {xml_filepath}: {e}")
+        return None
+
+
+if __name__ == "__main__":
+    repo_path = "data/raw/canonical-latinLit"
+    output_dir = "data/raw/"
+    download_canonical_latin(repo_path, output_dir)
 
 
 

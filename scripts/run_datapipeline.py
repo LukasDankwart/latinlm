@@ -15,7 +15,6 @@ def main():
     parser.add_argument("--skip-scraping", action="store_true", help="Skips scraping specified websites")
     parser.add_argument("--skip-preprocessing", action="store_true", help="Skips preprocessing crawled data")
     parser.add_argument("--skip-tokenize", action="store_true", help="Skips tokenization of preprocesses data")
-    parser.add_argument("--skip-binarize", action="store_true", help="Skips binarization of data")
 
     args = parser.parse_args()
     console.print(Panel.fit("[bold magenta] LatinLM - End-to-End Data Pipeline [/bold magenta]"))

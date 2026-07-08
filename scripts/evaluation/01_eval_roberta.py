@@ -1,4 +1,5 @@
 import argparse
+import json
 import sys
 from src.utils.script_utils import load_model_and_tokenizer
 from src.utils.utils import load_json_data
@@ -7,6 +8,7 @@ import pandas as pd
 import os
 import logging
 from transformers import logging as hf_logging
+from datasets import load_from_disk, load_dataset, Dataset
 
 from transformers import PreTrainedModel, PreTrainedTokenizerFast
 
@@ -29,8 +31,21 @@ def parse_args() -> argparse.Namespace:
     if not args.set_outputdir:
         args.set_outputdir = os.path.join(*path_of_model_run) + "/evaluation"
 
-
     return args
+
+
+def load_eval_safe(filepath: str, limit: int = 50000) -> Dataset:
+    """ Does load a subset of specified .jsonl file for evaluation """
+    data = []
+    with open(filepath, "r", encoding="utf-8") as f:
+        for i, line in enumerate(f):
+            if i >= limit:
+                break
+            line = line.strip()
+            if line:
+                data.append(json.loads(line))
+    return Dataset.from_list(data)
+
 
 def main():
 
@@ -57,8 +72,33 @@ def main():
 
 
     # 2. Step: ───── Prepare Eval data ─────
-    texts = load_json_data(eval_data_path)
-    print(f"[yellow] -- [INFO] Evaldata loaded from '{eval_data_path}', number of samples: {len(texts)} [/yellow]")
+    #dataset = load_dataset(
+    #    "json",
+    #    data_files=eval_data_path,
+    #    split="train",
+    #    streaming=True
+    #)
+
+    num_samples = 50000
+    #texts = dataset.take(num_samples)
+    dataset = load_eval_safe(eval_data_path, limit= num_samples)
+    texts = dataset["text"]
+    test_sentence = texts[0]
+    tokens = tokenizer(
+                test_sentence,
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+                max_length=512,
+                return_special_tokens_mask=True
+            )
+    print(test_sentence)
+    print(tokens)
+
+    #texts = load_json_data(eval_data_path)
+    #ud_dataset = load_from_disk(eval_data_path)
+    #texts = ud_dataset["test"]
+    print(f"[yellow] -- [INFO] Evaldata loaded from '{eval_data_path}', number of samples: {num_samples} [/yellow]")
 
 
     # 3. Step: ───── Compute metrics ─────

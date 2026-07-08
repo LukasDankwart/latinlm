@@ -17,6 +17,16 @@ DATASETS_TO_DOWNLOAD = [
     {
         "name": "wikimedia/wikipedia",
         "subset": "20231101.la",
+    },
+    {
+        "name": "cltk",
+        "subset": [
+            "lat_text_perseus",
+            "lat_text_latin_library",
+            "lat_text_tesserae",
+            "latin_text_antique_digiliblt",
+            "latin_text_poeti_ditalia"
+        ]
     }
 ]
 DATASETS_SAMPLE_LIMIT = None
@@ -26,6 +36,10 @@ PRELOADED_DATASETS = [
     {
         "name": "GreLa",
         "path": "data/raw/grela/grela_v0.6.duckdb"
+    },
+    {
+        "name": "canonical-latinLit",
+        "path": "data/raw/canonical-latinLit"
     }
 ]
 

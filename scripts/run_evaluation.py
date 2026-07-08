@@ -14,6 +14,8 @@ def main():
 
     parser.add_argument("--eval-roberta", action="store_true", help="Which model type to use")
     parser.add_argument("--set-checkpoint", type=str, default=None, help="Checkpoint to use for evaluation")
+    parser.add_argument("--set-evaldata", type=str, default=None, help="Set data used for evaluation")
+    parser.add_argument("--set-outputdir", type=str, default=None, help="Set output directory for results")
 
     args = parser.parse_args()
     console.print(Panel.fit("[bold magenta] LatinLM - Model Evaluation [/bold magenta]"))
@@ -35,12 +37,19 @@ def main():
                 console=console,
         ) as progress:
             roberta_task = progress.add_task(f"[cyan] 1. Evaluation of RoBERTa at checkpoint '{checkpoint_path}' [/cyan]",)
-            extra_args = ["--set-checkpoint", args.set_checkpoint]
-            run_subscript(console,
-                          "scripts.evaluation.01_eval_roberta",
-                          "Evaluation",
-                          progress,
-                          extra_args=extra_args)
+            extra_args = [
+                "--set-checkpoint", args.set_checkpoint,
+                "--set-evaldata", args.set_evaldata,
+                "--set-outputdir", args.set_outputdir,
+            ]
+            try:
+                run_subscript(console,
+                              "scripts.evaluation.01_eval_roberta",
+                              "Evaluation",
+                              progress,
+                              extra_args=extra_args)
+            except Exception as e:
+                print(f"[ERROR] Following error occurred during evaluation: {e}")
             progress.update(roberta_task, description=f"[green]✓ 1. Evaluation step successful![/green]",
                             total=1, completed=1)
 
