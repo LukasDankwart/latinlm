@@ -1,54 +1,78 @@
-# Datapipeline
-This README is desired to provide more details about the datapipeline and subsequently, the data corpus that is created.
-Every progressing step of the pipeline will be described in the following, starting with an overview over all data sources
-that are currently integrated and their amount of words/tokens:
+# Description of the LatinLM - Datapipeline
+The datapipeline consists of various downloading, scraping and preprocessing steps, that are explained in more detail here.
+Currently, the following data source are integrated into the pipeline:
 
-| **Datasource**          | **Words** | **Tokens** |
-|-------------------------|-----------|------------|
-| CanonicalLatinLit       | 7.75M     | T          |
-| CLTK                    | 17.68M    | T          |
-| GreLa (Corpus Corporum) | 233.12M   | T          |
-| FineWeb2 (Lat-Latn)     | 519.15M   | T          |
-| Nuntii Latini           | 67k       | T          |
-| Vatican News            | 136k      | T          |
-| Wikimedia Wikipedia     | 13.03M    | T          |
+## 1. Sources:
+Crawls / Pre-Existing datasets and the number of words, before filtering:
 
-The reported numbers are the amount of words after preprocessing (e.g. filtering) the raw data and the number of token 
-comes from applying a BPE trained tokenizer to the data. 
+| *Name*                                                                             | *Subsets*                                                                                                                                              | *Type*  | *Number of words* |
+|:-----------------------------------------------------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------|:--------|:------------------|
+| [FineWeb2](https://huggingface.co/datasets/HuggingFaceFW/fineweb-2)                | "lat_Latn"                                                                                                                                             | crawl   | 603,112,685       |
+| [GreLa](https://zenodo.org/records/17866143?preview_file=CCS-ZCU%2FGreLa-v0.6.zip) | -                                                                                                                                                      | crawl   | 287,009,237       |
+| [Wikimedia](https://huggingface.co/datasets/wikimedia/wikipedia)                   | "20231101.la"                                                                                                                                          | crawl   | 16,758,268        |
+| [CLTK](https://huggingface.co/datasets/wikimedia/wikipedia)                        | "lat_text_perseus", <br/>"lat_text_latin_library", <br/> "lat_text_tesserae" <br/> "latin_text_antique_digiliblt"<br/> "latin_text_poeti_ditalia"<br/> | crawl   | 21,409,985        |
+| [Canonical Latin](https://github.com/PerseusDL/canonical-latinLit.git)             | "20231101.la"                                                                                                                                          | crawl   | 17,700,787        |
+| [Nuntii Latini](https://nuntiilatini.com/page/)                                    | -                                                                                                                                                      | scraped | 73,578            | 
+| [Vatican News](https://www.vaticannews.va/bin/servlet/solr/search)                 | -                                                                                                                                                      | scraped | 341,785           |
+| **Overall** | | | **946, 406, 325** |
 
-The datapipeline consists of four stages, that are described in the following:
-1. Download
-2. Scraping
-3. Preprocessing
-4. Pre-Tokenization (& Binarization)
-
-## 1. Download
-This progressing step might require some manual downloads, since not all datasets can be fetched via APIs.
-For example, the downloading step will automatically download most of the datasets and convert them to a new .jsonl file of
-raw aggregated data. With the exception for GreLa, no manual downloads are required.
-
-For integrating GreLa (which mostly consists of Corpus Corporum), all subsets of the database have to be downloaded manually 
-from [zenodo](https://zenodo.org/records/17866143?preview_file=CCS-ZCU%2FGreLa-v0.6.zip). 
-Afterwards please move all parts to the `".data/raw/grela"` directory and concatenate all .duckdb parts to one combined database file via:
+The number of overall words represents results of simply splitting the sentences, so the exact number of results might be lower (e.g., due to HTML garbage etc.)
+The data results from running the first two datapipeline steps, which can be executed by:
 ```
-cat grela_v0.6.duckdb.part* > grela_v0.6.duckdb  # Linux / Mac
-copy /b grela_v0.6.duckdb.part* grela_v0.6.duckdb  # Windows
+uv run python -m scripts.run_datapipeline --skip-preprocessing --skip-tokenize         # Only execute download and scraping step
 ```
-During this step, CanonicalLatinLit, CLTK, GreLa, Fineweb, WikimediaWikipedia will be processed and stored as raw .jsonl
-in your `".data/raw"` folder.
+**Note**: - For the [GreLa](https://zenodo.org/records/17866143?preview_file=CCS-ZCU%2FGreLa-v0.6.zip) dataset it is currently required to download all `.duckdb` parts, combine them into one file and store it to `data/raw/gerla/grela_v0.6.duckdb`
 
-## 2. Scraping
-This step should not need any manuall adjustments, since data is scraped from the two remaining sources of VaticanNews 
-and Nuntii Latini. Subsequently, raw .jsonl files will be stored at `".data/raw"`.
+## 2. Pre-Processing: Normalization & Filtering:
+This section describes all normalization and filtering steps applied to the raw data.
 
-## 3. Pre-Processing
-This procedure is the key aspect of the datapipeline, since the raw data must be filtered and normalized for the subsequent steps.
-Currently, the preprocessing progress follows these sub-steps:
-1. Each .jsonl of the previous mentioned datasource is processed isolated.
-2. Each line/sample is interpreted as paragraph, that gets split to sentences.
-3. Each sentence is filtered isolated:
-   1. Normalization 
-   2. Filtering via heuristics and language detector prediction
-4. All leftover sentences are then re-concatenated to one paragraph.
+Current Pre-Processing steps, that are applied to each `*.jsonl` in `data/raw`:
+1. Each sample (text) is divided into sentences by replacing `\n` with `.` and replacing shortcuts in namens (e.g., C. Iulius Caesar to C_ Iulius Caesar) in order to split sentences. The result is a list of left over sentences from the paragraph.
+2. Each sentence is processed individually. At first, the following Normalization steps are applied:
+   - Applying NFD Normalization (canonical decomposition) to split `é` into `e+´`
+   - All redundant spaces are removed
+   - Mapping different special tokens like `<<>>`, `“..”` to standard `".."`
+   - Remove all parts included in typical HTML markers `{...}`, `<...>`, `[...]` because they potentially include HTML leftovers
+   - Removing enumerations of sentences
+   - Removing leftover sentence markers
+   - Ensure that the first letter of each sentence is in upper case for consistency
+3. Subsequently, each normalized sentence is filtered by the following quality criteria. If one criterion is violated, the sentences is omitted: 
+   - No pipe-symbols like `|` are included.
+   - Sentence has `3 < number of words < 50` and must consist of more than 10 characters
+   - At least 60% of the sentence should be in lower case, otherwise this indicates wrong normalization or HTML leftovers.
+   - The sentence should consist at least to 75% of latin letters or spaces.
+4. To further validate each sentence, an instance of the `lingua` language detector is used to classify each sentence. If the sentence is not classified as `Language.LATIN`, it is omitted.
+5. Finally, all leftover sentences of one original paragraph are re-concatenated to restore the paragraph.
 
-## 4. Pre-Tokenization
+By applying these Pre-Processing steps, the number of words for each datasource fall to:
+
+| *Name*                                                                             | *Number of words*                |
+|:-----------------------------------------------------------------------------------|:---------------------------------|
+| [FineWeb2](https://huggingface.co/datasets/HuggingFaceFW/fineweb-2)                | 519,151,912                      |
+| [GreLa](https://zenodo.org/records/17866143?preview_file=CCS-ZCU%2FGreLa-v0.6.zip) | 233,119,452                      |
+| [Wikimedia](https://huggingface.co/datasets/wikimedia/wikipedia)                   | 13,030,722                       |                                                                                                                                        
+| [CLTK](https://huggingface.co/datasets/wikimedia/wikipedia)                        | 17,689,706                       |
+| [Canonical Latin](https://github.com/PerseusDL/canonical-latinLit.git)             | 421,077                          |                                                                                                                                      
+| [Nuntii Latini](https://nuntiilatini.com/page/)                                    | 66,964                           |                                                                                                                                                    
+| [Vatican News](https://www.vaticannews.va/bin/servlet/solr/search)                 | 135,519                          |                                                                                                                                                  
+| **Overall**                                                                        |  **783,615,352**                 |
+
+# 3. Tokenizer:
+On the resulting data corpus, we train a Tokenizer by BPE with `VOCAB_SIZE=32768`. The resulting tokenizer has the following properties:
+- Avg. Fertility: 1.31        # How many tokens on avg. to represent one word
+- Avg. Compression: 5.36       # How many chars/bytes are represented on avg. by one token
+- Avg. Single Chars: 1.04%      #  1.04% of vocabulary represent one single character
+
+Using this tokenizer for pre-tokenization before model training results in the following number of tokens per split:
+
+| *Name / Split* | *Number of tokens*                |
+|:---------------|:---------------------------------|
+| Train          | 1,068,935,460                      |
+| Test           | 20,680,704   |
+
+## 4. Tokenization & Binarization
+In the last step, all cleaned data is pre-tokenized & binarized for consecutive training. Therefore, the dataset is tokenized into chunks of size 512.
+The resulting dataset is stored in HuggingFace format at `data/tokenized` where three splits are stored:
+- train # Binarized in .arrow format
+- test # Binarized in .arrow format
+- eval # Not tokenized, still in .jsonl format for semantic evaluation
