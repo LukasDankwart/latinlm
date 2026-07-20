@@ -33,6 +33,17 @@ def main():
     test_dataset = lm_dataset["test"]
     print(f"[yellow] -- [INFO] Dataset successfully initialized...")
 
+    # Count for each split how many tokens are included
+    def count_tokens(batch):
+        return {"token_count": [len(seq) for seq in batch["input_ids"]]}
+    counted_dataset = lm_dataset.map(count_tokens, batched=True, desc="Zähle Tokens...")
+    total_tokens = 0
+    for split_name, split_data in counted_dataset.items():
+        split_tokens = sum(split_data["token_count"])
+        print(f"-- [INFO] Number of tokens from '{split_name}': {split_tokens:,}")
+        total_tokens += split_tokens
+
+
     # 3. Step: ───── Initialize model instance ─────
     model_args = model_config["model"]
     model_args["vocab_size"] = len(tokenizer)

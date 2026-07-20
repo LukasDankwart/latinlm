@@ -90,7 +90,7 @@ def is_quality_sentence(sentence: str) -> bool:
     word_count = len(words)
     char_count = len(sentence)
 
-    # 1. Throw sentences away with less than 3 words, more than 60 (probably error!) or if to fewer chars exist
+    # 1. Throw sentences away with less than 3 words, more than 50 (probably error!) or if to fewer chars exist
     if word_count < 3 or word_count > 50 or char_count < 10:
         return False
 
