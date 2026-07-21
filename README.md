@@ -54,10 +54,10 @@ Currently, the datapipeline includes the following processing steps:
 For each of these steps, one corresponding script exists in "scripts/pipeline/" implements the respective pipeline step.
 The pipeline can be executed by using:
 ```
-uv run python scripts/run_datapipeline.py
+uv run python -m scripts.run_datapipeline
 
 # Optional: Skip specific steps of pipeline by using *--skip-[stepname]* as command
-uv run python scripts/run_datapipeline.py --skip-download --skip-scraping
+uv run python -m scripts.run_datapipeline --skip-download --skip-scraping
 ```
 The complete datapipeline will create multiple subdirectories in the 'data' folder:
 ```
