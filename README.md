@@ -6,7 +6,7 @@ language understanding.
 ## 1. Setup
 We highly recommend using **[uv](https://docs.astral.sh/uv/)** as environment and package manager. 
 
-Requirements: You shoudl have **uv** installed locally. Otherwise, try: 
+Requirements: You need to have **uv** installed locally. Otherwise, try: 
 
 ```curl -LsSf https://astral.sh/uv/install.sh | sh```
 
@@ -35,19 +35,21 @@ latinlm/
 ├── data                # Is exluded from git! Will be created if the datapipeline is executed
 ├── scripts             # Python scripts to be exectued (e.g., datapipeline, train scripts...)
 ├── src                 # Implementation of functions / classes used by scripts
-├── experimens          # Stores checkpoints of training approaches
-├── configs             # Stores different .yaml configs of models to be trained
+├── experimens          # Is exluded from git! Stores checkpoints of training approaches. 
+├── configs             # Stores different .yaml configs of datasets or models to be trained
 ```
 
 ### 2.1 Data-Pipeline
+The datapipeline is explained more detaild in a separate README at `scripts.datapipeline`.
+
 Currently, the datapipeline includes the following processing steps:
 ```
 ├── Data-Pipeline
-    └── 1. Download         # Downloads pre-existing Latin datasets from huggingface or other sources
-    └── 2. Scraping         # Scrapes internet websites to collect raw latin data
-    └── 3. Preprocessing    # Includes normalization and filtering of raw latin data
-    └── 4. Tokenize         # Uses a trained tokenizer to translate data into tokenized representation
-    └── 5. Binarize         # Compresses the final data into efficient format for training
+    └── 1. Download             # Downloads pre-existing Latin datasets from huggingface or other sources
+    └── 2. Scraping             # Scrapes internet websites to collect raw latin data
+    └── 3. Preprocessing        # Includes normalization and filtering of raw latin data
+    └── 4. Deduplication        # Uses MinHashLSH for deduplication cleaned data corpus.
+    └── 5. Tokenize &Binarize   # Pre-tokenizes the text and binarizes to .arrow format.
 ```
 For each of these steps, one corresponding script exists in "scripts/pipeline/" implements the respective pipeline step.
 The pipeline can be executed by using:
@@ -57,11 +59,12 @@ uv run python scripts/run_datapipeline.py
 # Optional: Skip specific steps of pipeline by using *--skip-[stepname]* as command
 uv run python scripts/run_datapipeline.py --skip-download --skip-scraping
 ```
-The complete datapipeline will create three subdirectories in the 'data' folder:
+The complete datapipeline will create multiple subdirectories in the 'data' folder:
 ```
 ├── data                
-    ├── processed       # Stores .jsonl with pre-processed data for each source
     ├── raw             # Stores .jsonl with raw data for each source
+    ├── processed       # Stores .jsonl with pre-processed data for each source
+    ├── deduplicated    # Stores one combined .jsonl after deduplication. Represents final corupus.
     └── tokenized       # Stores the differents splits of the dataset as .arrow formats          
 ```
 

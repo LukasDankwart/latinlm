@@ -12,7 +12,7 @@ def main():
 
     # ──────────────── Parser Arguments ────────────────
     parser.add_argument("--skip-train", action="store_true", help="Skips training of tokenizer")
-    parser.add_argument("--skip-eval", action="store_true", help="Skips scraping specified websites")
+    parser.add_argument("--skip-eval", action="store_true", help="Skips evaluation of trained tokenizer")
 
     args = parser.parse_args()
     console.print(Panel.fit("[bold magenta] LatinLM - Tokenizer Train & Eval [/bold magenta]"))
