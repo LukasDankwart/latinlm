@@ -1,6 +1,6 @@
 # ── Project specific ─────────────────────────────────────────────────────
-#.data/
 /data/
+/experiments/
 
 # ── Python ───────────────────────────────────────────────────────────────────
 __pycache__/
@@ -12,6 +12,9 @@ build/
 dist/
 *.egg-info/
 .eggs/
+*.pt
+*.pth
+*.safetensors
 
 # ── Virtual envs ─────────────────────────────────────────────────────
 .venv/
@@ -21,6 +24,13 @@ env/
 # ── Files ─────────────────────────────────────────────────────
 .env
 *.bin
+*.duckdb
+*.duckdb.part*
+*.jsonl
+*.json
+*.arrow
+*.bz2
+*.zip
 
 # ── Test / Coverage / Type-Checking ──────────────────────────────────────────
 .pytest_cache/
@@ -29,6 +39,7 @@ env/
 htmlcov/
 .mypy_cache/
 .ruff_cache/
+wandb/
 
 # ── IDE / Editor ─────────────────────────────────────────────────────────────
 .idea/

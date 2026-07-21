@@ -1,6 +1,5 @@
-import os
-
 from datasets import load_dataset, DatasetDict
+import os
 from transformers import PreTrainedTokenizerFast
 import src.config as config
 from glob import glob
@@ -20,6 +19,7 @@ def prepare_training_data(dataset_dict: DatasetDict, output_path: str, tokenizer
         batched=True,
         num_proc=config.NUM_CPU_WORKERS,
         remove_columns=original_columns,
+        load_from_cache_file=False
     )
 
     block_size = 512
@@ -43,6 +43,7 @@ def prepare_training_data(dataset_dict: DatasetDict, output_path: str, tokenizer
         batched=True,
         batch_size=1000,
         num_proc=config.NUM_CPU_WORKERS,
+        load_from_cache_file=False
     )
 
     print(f"-- [INFO] Storing tokenized dataset...")

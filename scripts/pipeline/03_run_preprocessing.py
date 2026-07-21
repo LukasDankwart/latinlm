@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import src.config as config
 from src.data.preprocessing import process_file
 import os
@@ -33,6 +36,32 @@ if __name__ == "__main__":
         overall_words += cnt_filtered_words
 
     print(f"[END] Done with Pre-Processing all dater! Overall words: {overall_words}")
+
+    # Finally count all words of each raw data file
+    total_word_count = 0
+    file_count = 0
+    results = {}
+    for filepath in Path(output_dir).glob("*.jsonl"):
+        file_word_count = 0
+        with open(filepath, "r", encoding="utf-8") as file:
+            for line in file:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    data = json.loads(line)
+                    text = data.get("text", "")
+                    word_count = len(text.split())
+                    file_word_count += word_count
+
+                except json.JSONDecodeError:
+                    print(f"[ERROR] Defect row in {filepath} detected. Row is skipped")
+
+        total_word_count += file_word_count
+        file_count += 1
+        results[filepath] = file_word_count
+    for (key, val) in results.items():
+        print(f"-- [INFO] {key} number of words: {val}")
 
 
 
