@@ -16,6 +16,7 @@ def main():
         print(f"-- [INFO] Dataset config loaded successfully from '{dataset_config_path}'", flush=True)
 
         tokenizer_path = dataset_config["tokenizer_path"]
+
         if not os.path.isfile(tokenizer_path):
             raise FileNotFoundError(f"[ERROR] There is no tokenizer at '{tokenizer_path}'! Check dataset.yaml!")
 

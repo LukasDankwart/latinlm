@@ -7,7 +7,7 @@ model:
   type_vocab_size: 1
 
 tokenizer:
-  tokenizer_path: "./data/tokenized/bpe_tokenizer.json"
+  tokenizer_path: "tokenizer/bpe_tokenizer.json"
   tokenizer_vocab_size: 32768
   pad_token: "<pad>"
   unk_token: "<unk>"
