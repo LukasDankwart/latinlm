@@ -27,7 +27,6 @@ env/
 *.duckdb
 *.duckdb.part*
 *.jsonl
-*.json
 *.arrow
 *.bz2
 *.zip

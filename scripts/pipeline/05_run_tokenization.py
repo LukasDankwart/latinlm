@@ -1,3 +1,5 @@
+import subprocess
+
 from src.utils.utils import load_yaml_config
 from src.data.binarize import prepare_training_data, create_dataset
 from tokenizers.processors import TemplateProcessing
@@ -18,9 +20,20 @@ def main():
         tokenizer_path = dataset_config["tokenizer_path"]
 
         if not os.path.isfile(tokenizer_path):
-            raise FileNotFoundError(f"[ERROR] There is no tokenizer at '{tokenizer_path}'! Check dataset.yaml!")
+            print(f"[magenta] -- [INFO] There is no tokenizer at '{tokenizer_path}'! Starting tokenizer training script... [\magenta]")
+            try:
+                subprocess.run(
+                    ["uv", "run", "python", "-m", "scripts.run_tokenizer"],
+                    check=True,
+                    text=True
+                )
+            except Exception as e:
+                raise RuntimeError(f"[ERROR] Script crashed during training of tokenizer! \n {e}")
 
+        else:
+            print(f"-- [INFO] Tokenizer used from '{tokenizer_path}' - skipping retraining of tokenizer.")
 
+        print(f"-- [INFO] Loading tokenizer...")
         tokenizer_args = dataset_config["tokenizer"]
         tokenizer = PreTrainedTokenizerFast(
             tokenizer_file=tokenizer_path,
@@ -40,6 +53,7 @@ def main():
                 (tokenizer.eos_token, tokenizer.eos_token_id),
             ],
         )
+
     except Exception as e:
         print(f"[ERROR] Couldn't initialize tokenizer for tokenization and binarization step.", flush=True)
         traceback.print_exc()
