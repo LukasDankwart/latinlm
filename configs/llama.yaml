@@ -53,7 +53,7 @@ train:
   greater_is_better: false
 
 data:
-  path: "./data/llama/tokenized"
+  path: "./data/llama/"
 
 meta:
   report_to: "wandb"
