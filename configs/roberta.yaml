@@ -35,7 +35,7 @@ train:
   greater_is_better: false
 
 data:
-  path: "./data/tokenized"
+  path: "./data/roberta/tokenized"
 
 meta:
   report_to: "wandb"
