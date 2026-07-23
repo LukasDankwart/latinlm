@@ -1,4 +1,7 @@
-from transformers import LlamaConfig, LlamaForCausalLM
+import random
+
+import torch
+from transformers import LlamaConfig, LlamaForCausalLM, LlamaTokenizerFast
 from src.utils.utils import load_yaml_config
 import os
 
@@ -16,3 +19,80 @@ def load_llama_from_config(config_path: str) -> tuple[LlamaForCausalLM, LlamaCon
     print(f"-- [INFO] Llama model parameters: {model.num_parameters() / 1e6:.2f}M")
 
     return model, llama_config
+
+
+def perform_inference_with_checkpoint(
+        checkpoint_path: str,
+        tokenizer_args: dict,
+        inputs: list[dict],
+        max_new_tokens: int = 100,
+        temperature: float = 0.7
+) -> list[dict]:
+    """ Performs autoregressive generation of cutted evaluation samples. """
+
+    # 1. Load Tokenizer from given tokenizer args
+    tokenizer_path = tokenizer_args["tokenizer_path"]
+    print(f"--[INFO] Loading tokenizer from path: '{tokenizer_path}'")
+    tokenizer = LlamaTokenizerFast.from_pretrained(
+        tokenizer_path,
+        bos_token=tokenizer_args["bos_token"],
+        eos_token=tokenizer_args["eos_token"],
+        unk_token=tokenizer_args["unk_token"],
+        pad_token=tokenizer_args["pad_token"],
+    )
+
+    # 2. Load model checkpoint
+    model = LlamaForCausalLM.from_pretrained(
+        checkpoint_path,
+        torch_dtype=torch.float16,
+        device_map="auto"
+    )
+    model.eval()
+
+    # 3. Loop: For every input sentence, call generating procedure and store results
+    print(f"-- [INFO] Starting inference run for evaldata...")
+    results = []
+    for (idx, sample) in enumerate(inputs):
+        text = sample["text"]
+        source = sample["source"]
+
+        prompt, cutoff_idx = get_random_prefix(text)
+        prompt_tokenized = tokenizer(prompt, return_tensors="pt").to(model.device)
+
+        with torch.no_grad():
+            output_ids = model.generate(
+                **prompt_tokenized,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                do_sample=True,
+                top_p=0.9,
+                repetition_penalty=1.1,
+                eos_token_id=tokenizer.eos_token_id
+            )
+
+        generated_text = tokenizer.decode(output_ids[0], skip_special_tokens=True)
+
+        results.append({
+            "source": source,
+            "original": text,
+            "prompt": prompt,
+            "cutoff_idx": cutoff_idx,
+            "generated_text": generated_text
+        })
+
+    return results
+
+
+def get_random_prefix(text: str, min_keep_ratio: float = 0.2, max_keep_ratio: float = 0.8) -> tuple[str, int]:
+    """ Extracts random prefix substring/sequence to extract start sequence from original
+        sample for autoregressive generation."""
+
+    words = text.split()
+    total_words = len(words)
+    if total_words < 2:
+        return text, -1
+    keep_ratio = random.uniform(min_keep_ratio, max_keep_ratio)
+    keep_count = max(1, int(total_words * keep_ratio))
+    prefix = " ".join(words[:keep_count])
+
+    return prefix, keep_count

@@ -90,7 +90,7 @@ def create_dataset(config: dict) -> DatasetDict:
         os.makedirs(eval_set_path)
     eval_set.to_json(eval_set_path + "/eval_data.json", force_ascii=False)
 
-    print(f"[END] Done creating summarized datset dictionary!")
+    print(f"[END] Done creating summarized dataset dictionary!")
     print(f"-- [INFO] Train: {len(train_set)}")
     print(f"-- [INFO] Test: {len(test_set)}")
     print(f"-- [INFO] Eval: {len(eval_set)}")
