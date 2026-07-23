@@ -4,7 +4,12 @@ from transformers import PreTrainedTokenizerFast
 import src.config as config
 from glob import glob
 
-def prepare_training_data(dataset_dict: DatasetDict, output_path: str, tokenizer: PreTrainedTokenizerFast = None):
+def prepare_training_data(
+        dataset_dict: DatasetDict,
+        output_path: str, tokenizer:
+        PreTrainedTokenizerFast = None,
+        block_size: int = 512
+):
     print(f"[START] Loading tokenizer...")
     if tokenizer is None:
         raise RuntimeError("[ERROR] Pre-tokenization requires tokenizer as argument!")
@@ -22,7 +27,7 @@ def prepare_training_data(dataset_dict: DatasetDict, output_path: str, tokenizer
         load_from_cache_file=False
     )
 
-    block_size = 512
+    block_size = block_size
     # e.g. in Masked LM we dont want to input very short sentences (fewer tokens!), so we group them up to a fixed sice
     # (basically the sequence length)
     print(f"--  [INFO] Grouping samples...")

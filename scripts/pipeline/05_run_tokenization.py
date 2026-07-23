@@ -11,7 +11,7 @@ import traceback
 def main():
     # Instantiate tokenizer
     try:
-        dataset_config_path = "configs/dataset.yaml"
+        dataset_config_path = "configs/llama_dataset.yaml"
         if not os.path.isfile(dataset_config_path):
             raise FileNotFoundError(f"[ERROR] There is no dataset config file at '{dataset_config_path}'!")
         dataset_config = load_yaml_config(dataset_config_path)
@@ -60,6 +60,8 @@ def main():
 
     input_dir = dataset_config["input_dir_path"]
     output_dir = dataset_config["output_dir_path"]
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
 
     # 1. Create summarzied dataset-dict with train, test, eval split by arguments from dataset.yaml
     print(f"[START] Start creating dataset dictionary...")
@@ -67,7 +69,9 @@ def main():
 
     # 2. Pre-tokenize whole dataset
     print(f"[START] Start pre-tokenizing dataset...")
-    prepare_training_data(dataset_dict, output_dir, tokenizer=tokenizer)
+    block_size = dataset_config.get("chunk_size", 512)
+    print(f"-- [INFO] Chunk-Size for pre-tokenization: {block_size}")
+    prepare_training_data(dataset_dict, output_dir, tokenizer=tokenizer, block_size=block_size)
     print(f"[END] Done tokenizing dataset and stored to '{output_dir}'!")
 
 if __name__ == "__main__":
