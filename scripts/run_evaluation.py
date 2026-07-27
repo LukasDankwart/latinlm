@@ -19,6 +19,10 @@ def main():
     parser.add_argument("--set-evaldata", type=str, default=None, help="Set data used for evaluation")
     parser.add_argument("--set-outputdir", type=str, default=None, help="Set output directory for results")
 
+    # Llama specific args
+    parser.add_argument("--skip-inference", action="store_true", help="Skips inference run of Llama")
+    parser.add_argument("--skip-judgment", action="store_true", help="Skips inference run of Llama")
+
     args = parser.parse_args()
     console.print(Panel.fit("[bold magenta] LatinLM - Model Evaluation [/bold magenta]"))
 
@@ -76,6 +80,8 @@ def main():
                 "--set-checkpoint", args.set_checkpoint,
                 "--set-evaldata", args.set_evaldata,
                 "--set-outputdir", args.set_outputdir,
+                "--skip-inference", args.skip_inference,
+                "--skip-judgment", args.skip_judgment
             ]
             try:
                 run_subscript(console,

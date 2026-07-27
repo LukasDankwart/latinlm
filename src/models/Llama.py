@@ -21,7 +21,7 @@ def load_llama_from_config(config_path: str) -> tuple[LlamaForCausalLM, LlamaCon
     return model, llama_config
 
 
-def perform_inference_with_checkpoint(
+def perform_autoregressive_completion(
         checkpoint_path: str,
         tokenizer_args: dict,
         inputs: list[dict],
@@ -56,8 +56,8 @@ def perform_inference_with_checkpoint(
         text = sample["text"]
         source = sample["source"]
 
-        prompt, cutoff_idx = get_random_prefix(text)
-        prompt_tokenized = tokenizer(prompt, return_tensors="pt").to(model.device)
+        llama_input, cutoff_idx = get_random_prefix(text)
+        prompt_tokenized = tokenizer(llama_input, return_tensors="pt").to(model.device)
 
         with torch.no_grad():
             output_ids = model.generate(
@@ -75,7 +75,7 @@ def perform_inference_with_checkpoint(
         results.append({
             "source": source,
             "original": text,
-            "prompt": prompt,
+            "llama_input": llama_input,
             "cutoff_idx": cutoff_idx,
             "generated_text": generated_text
         })

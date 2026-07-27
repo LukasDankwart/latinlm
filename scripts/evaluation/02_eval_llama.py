@@ -1,5 +1,6 @@
 from transformers import logging as hf_logging
-from src.models.Llama import perform_inference_with_checkpoint
+from src.models.Llama import perform_autoregressive_completion
+from src.tests.llamar_metrics import analyze_sentence_by_llm, initialize_deepseek_api
 import argparse
 import os
 from src.utils.utils import load_json_to_dict_list
@@ -11,6 +12,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--set-checkpoint", type=str)
     parser.add_argument("--set-evaldata", type=str)
     parser.add_argument("--set-outputdir", type=str)
+    parser.add_argument(f"--skip-inference", type=bool)
+    parser.add_argument(f"--skip-judgment", type=bool)
 
     args, unknown_args = parser.parse_known_args()
     if not args.set_checkpoint:
@@ -44,23 +47,67 @@ def main():
     evaluation_data = load_json_to_dict_list(eval_data_path)
 
     # 3. Step: ───── Perform inference run over eval data ─────
-    tokenizer_args = {
-        "tokenizer_path": "tokenizer/bpe_tokenizer.json",
-        "bos_token": "<s>",
-        "eos_token": "</s>",
-        "unk_token": "<unk>",
-        "pad_token": "<pad>"
-    }
-    print(f"-- [INFO] Calling inference run with tokenizer from {tokenizer_args['tokenizer_path']}")
-    results = perform_inference_with_checkpoint(
-        checkpoint_path=checkpoint_path,
-        tokenizer_args=tokenizer_args,
-        inputs=evaluation_data
-    )
-    print(f"[yellow] -- [INFO] Model was loaded from '{checkpoint_path}' [/yellow]")
+    perform_inference = not args.skip_inference
+    if perform_inference:
+        tokenizer_args = {
+            "tokenizer_path": "tokenizer/bpe_tokenizer.json",
+            "bos_token": "<s>",
+            "eos_token": "</s>",
+            "unk_token": "<unk>",
+            "pad_token": "<pad>"
+        }
+        print(f"-- [INFO] Calling inference run with tokenizer from {tokenizer_args['tokenizer_path']}")
+        # Function calls autoregressive completion for original subsentences
+        results = perform_autoregressive_completion(
+            checkpoint_path=checkpoint_path,
+            tokenizer_args=tokenizer_args,
+            inputs=evaluation_data
+        )
+        print(f"[yellow] -- [INFO] Model was loaded from '{checkpoint_path}' [/yellow]")
 
-    # 4. Step: ───── Store results to specified output dir ─────
-    pf = pd.DataFrame(results)
-    output_path = os.path.join(output_dir, "autoregressive_results.csv")
-    pf.to_csv(output_path)
-    print(f"[yellow] -- [INFO] Successfully stored inference results to '{output_path}' [/yellow]")
+        # 4. Step: ───── Store results to specified output dir ─────
+        df = pd.DataFrame(results)
+        output_path = os.path.join(output_dir, "autoregressive_results.csv")
+        df.to_csv(output_path)
+        print(f"[yellow] -- [INFO] Successfully stored inference results to '{output_path}' [/yellow]")
+    else:
+        print(f"[yellow] -- [INFO]>> Skipping Llamar inference.")
+
+
+    # 5. Step: ───── Call LLM-as-a-Judge Procedure ─────
+    perform_llm_judgment = not args.skip_judgment
+    if perform_llm_judgment:
+        llm_input_data_path = os.path.join(output_dir, "autoregressive_results.csv")
+        if not os.path.exists(llm_input_data_path):
+            raise RuntimeError(f"[ERROR] Aborting LLM judgment procedure! Autoregressive completed data is expected to "
+                  f"be at '{llm_input_data_path}' but file is missing. Pre-run the Llama inference by omitting argument '--skip-inference'.")
+        llm_input_data_df = pd.read_csv(llm_input_data_path)
+        llm_input_data = llm_input_data_df.to_dict(orient='records')
+        llm_judgments = []
+        deepseek_client = initialize_deepseek_api()
+        print(f"[yellow] -- [INFO] Starting LLM judgment by Deepseek ...[/yellow]")
+        for (idx, sample) in enumerate(llm_input_data):
+            llamar_output = sample.get("generated_text", "")
+            if llamar_output == "":
+                continue
+            judge_results = analyze_sentence_by_llm(client=deepseek_client, latin_sample=llamar_output, retries=3)
+            # Storing original input dict + deepsek results dict combined
+            z = sample.copy()
+            z.update(judge_results)
+            llm_judgments.append(z)
+
+            if idx % 10 == 0:
+                print(f"[yellow] -- [INFO] Judgement completed for {(idx / len(llm_input_data)):.2f} of evaluation data...")
+
+        # 6. Step: ───── Store LLM judgements as .csv file ─────
+        df_judges = pd.DataFrame(llm_judgments)
+        judges_output_path = os.path.join(output_dir, "deepseek_evaluation.csv")
+        df_judges.to_csv(judges_output_path)
+    else:
+        print(f"[yellow] -- [INFO]>> Skipping judgment by Deepseek.")
+
+
+
+
+
+
