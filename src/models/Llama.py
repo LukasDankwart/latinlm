@@ -3,6 +3,7 @@ import random
 import torch
 from transformers import LlamaConfig, LlamaForCausalLM, LlamaTokenizerFast
 from src.utils.utils import load_yaml_config
+from src.tests.llamar_metrics import llamar_perplexity
 import os
 
 def load_llama_from_config(config_path: str) -> tuple[LlamaForCausalLM, LlamaConfig]:
@@ -56,6 +57,20 @@ def perform_autoregressive_completion(
         text = sample["text"]
         source = sample["source"]
 
+        perplexity = llamar_perplexity(model, tokenizer, text)
+
+        # We skip every sixth sentence in order to also have fully original texts for later LLM Judgement
+        if idx % 6 == 0:
+            results.append({
+                "source": source,
+                "cutoff_idx": "-1",
+                "original": text,
+                "llama_input": text,
+                "generated_text": text,
+                "perplexity": perplexity
+            })
+            continue
+
         llama_input, cutoff_idx = get_random_prefix(text)
         prompt_tokenized = tokenizer(llama_input, return_tensors="pt").to(model.device)
 
@@ -74,10 +89,11 @@ def perform_autoregressive_completion(
 
         results.append({
             "source": source,
+            "cutoff_idx": cutoff_idx,
             "original": text,
             "llama_input": llama_input,
-            "cutoff_idx": cutoff_idx,
-            "generated_text": generated_text
+            "generated_text": generated_text,
+            "perplexity": perplexity
         })
 
     return results

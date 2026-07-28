@@ -1,6 +1,8 @@
 import json
 import os
 import time
+
+import torch
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -32,7 +34,7 @@ BASE_PROMPT = """
         "reasoning": Summarize your language analysis in max. 3 sentence.
         "is_partially_generated: True or false.
         "guess_generated_start_word": Name the word if you assume the generation started here (null if text is fully original),
-        "confidence_1_to_10": General score regarding the authenticity of the given paragraph  (w.r.t to criteria like grammar, vocabulary etc.)
+        "authenticity_1_to_10": General score regarding the authenticity of the given paragraph  (w.r.t to criteria like grammar, vocabulary etc.)
     }
     """
 
@@ -73,5 +75,57 @@ def analyze_sentence_by_llm(client: OpenAI, latin_sample: str, retries: int = 3)
             time.sleep(2)
     return {"error": "API failed after retries."}
 
+
+def distinct_n_repetition(generated_text: str, n_gram: int = 1) -> float:
+    """ This method measures different distinct-n grams for the generated sequence.
+        Returns 1.0 if all n-grams are unique, lower values indicate more repetitions."""
+    if not generated_text or not generated_text.split():
+        return 0.0
+    words = generated_text.lower().split()
+    total_words = len(words)
+    if total_words < n_gram:
+        return 0.0
+    n_grams = [
+        tuple(words[i : i + n_gram])
+        for i in range(total_words - n_gram + 1)
+    ]
+
+    total_n_grams = len(n_grams)
+    unique_n_grams = len(set(n_grams))
+
+    return unique_n_grams / total_n_grams
+
+
+def type_token_ratio(generated_text: str) -> float:
+    """ Compute the Type-token-ratio, which represents the ratio of unique words divided by total words"""
+    if not generated_text or not generated_text.split():
+        return 0.0
+    words = generated_text.lower().split()
+    if len(words) == 0:
+        return 0.0
+    unique_words = set(words)
+    ttr = len(unique_words) / len(words)
+    return ttr
+
+
+def llamar_perplexity(model, tokenizer, text: str) -> float:
+    """ Computes perplexity of model on given input text """
+    encodings = tokenizer(text, return_tensors="pt").to(model.device)
+
+    # Text must have at least 2 tokens for meaningful prediction of next word
+    if encodings.input_ids.size(1) < 2:
+        return float('inf')
+
+    with torch.no_grad():
+        outputs = model(
+            input_ids=encodings.input_ids,
+            attention_mask=encodings.attention_mask,
+            labels=encodings.input_ids
+        )
+
+        loss = outputs.loss
+        perplexity = torch.exp(loss).item()
+
+    return perplexity
 
 
