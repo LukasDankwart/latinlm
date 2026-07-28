@@ -27,7 +27,7 @@ def parse_args() -> argparse.Namespace:
 
     # Fallback to standard eval data file, if no other is specified
     if not args.set_evaldata:
-        args.set_evaldata = "data/tokenized/eval/eval_data.json"
+        args.set_evaldata = "data/roberta/eval/eval_data.json"
     if not args.set_outputdir:
         args.set_outputdir = os.path.join(*path_of_model_run) + "/evaluation"
 

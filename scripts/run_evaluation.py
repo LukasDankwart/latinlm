@@ -80,9 +80,11 @@ def main():
                 "--set-checkpoint", args.set_checkpoint,
                 "--set-evaldata", args.set_evaldata,
                 "--set-outputdir", args.set_outputdir,
-                "--skip-inference", args.skip_inference,
-                "--skip-judgment", args.skip_judgment
             ]
+            if args.skip_inference:
+                extra_args.append(f"--skip-inference")
+            if args.skip_judgment:
+                extra_args.append(f"--skip-judgment")
             try:
                 run_subscript(console,
                               "scripts.evaluation.02_eval_llama",

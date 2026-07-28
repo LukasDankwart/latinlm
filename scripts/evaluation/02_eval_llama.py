@@ -12,8 +12,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--set-checkpoint", type=str)
     parser.add_argument("--set-evaldata", type=str)
     parser.add_argument("--set-outputdir", type=str)
-    parser.add_argument(f"--skip-inference", type=bool)
-    parser.add_argument(f"--skip-judgment", type=bool)
+    parser.add_argument(f"--skip-inference", action="store_true")
+    parser.add_argument(f"--skip-judgment", action="store_true")
 
     args, unknown_args = parser.parse_known_args()
     if not args.set_checkpoint:
@@ -23,7 +23,7 @@ def parse_args() -> argparse.Namespace:
 
     # Fallback to standard eval data file, if no other is specified
     if not args.set_evaldata:
-        args.set_evaldata = "data/tokenized/eval/eval_data.json"
+        args.set_evaldata = "data/llama/eval/eval_data.json"
     if not args.set_outputdir:
         args.set_outputdir = os.path.join(*path_of_model_run) + "/evaluation"
 
@@ -88,6 +88,7 @@ def main():
         print(f"[yellow] -- [INFO] Starting LLM judgment by Deepseek ...[/yellow]")
         for (idx, sample) in enumerate(llm_input_data):
             llamar_output = sample.get("generated_text", "")
+            print(f"[INFO llama output: {llamar_output}")
             if llamar_output == "":
                 continue
             judge_results = analyze_sentence_by_llm(client=deepseek_client, latin_sample=llamar_output, retries=3)
@@ -107,6 +108,8 @@ def main():
         print(f"[yellow] -- [INFO]>> Skipping judgment by Deepseek.")
 
 
+if __name__ == "__main__":
+    main()
 
 
 

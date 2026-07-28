@@ -2,6 +2,7 @@ import json
 import os
 import time
 from openai import OpenAI
+from dotenv import load_dotenv
 
 """
     This file includes metrics for evaluating one Llama model trained on the data corpos. 
@@ -9,14 +10,17 @@ from openai import OpenAI
 """
 
 def initialize_deepseek_api() -> OpenAI:
+    load_dotenv()
     DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
+    if not DEEPSEEK_API_KEY:
+        raise ValueError(f"[ERROR] DEEPSEEK_API_KEY couldn't be loaded! Ensure it is placed in your '.env' file.")
     client = OpenAI(
         api_key=DEEPSEEK_API_KEY,
         base_url="https://api.deepseek.com"
     )
     return client
 
-BASE_PROMPT = f"""
+BASE_PROMPT = """
     You are an expert for the latin language. Your challenge ist to analyse given latin paragraphs. Most likely, the
     paragraph will start with original latin text. At an unknown index, the sentence was autoregressive completed by
     a small LLM model.
@@ -33,8 +37,12 @@ BASE_PROMPT = f"""
     """
 
 def analyze_sentence_by_llm(client: OpenAI, latin_sample: str, retries: int = 3) -> dict:
+    if not isinstance(latin_sample, str):
+        print(f"[WARN] Skipping unvalid data type of input: {type(latin_sample)}")
+        return {"error": "Invalid input type."}
+
     if len(latin_sample.split()) < 4:
-        return None
+        return {"error": "Skipping too short sentence."}
 
     for attempt in range(retries):
         try:
@@ -49,10 +57,19 @@ def analyze_sentence_by_llm(client: OpenAI, latin_sample: str, retries: int = 3)
                 max_tokens=500
             )
             result_json = response.choices[0].message.content
+            if not result_json or not result_json.strip():
+                raise ValueError("[WARN] API returned an empty string.")
+
+            result_json = result_json.strip()
+            if result_json.startswith("```json"):
+                result_json = result_json[7:]
+            if result_json.endswith("```"):
+                result_json = result_json[:-3]
+
             return json.loads(result_json)
 
         except Exception as e:
-            print(f"[ERROR] [API] Error while utilizing API in try {attempt} / {retries}...")
+            print(f"[ERROR] [API] Error while utilizing API in try {attempt} / {retries}... Error: {e}")
             time.sleep(2)
     return {"error": "API failed after retries."}
 
