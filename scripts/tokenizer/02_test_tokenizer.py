@@ -21,14 +21,14 @@ if __name__ == "__main__":
 
     # Determine path to process fineweb_data
     processed_dir = config.DEDUPLICATED_DATA_DIR
-    prefix = "HuggingFaceFW_fineweb-2_lat_Latn_clean.jsonl"
+    suffix = "deduplicated_corpus.jsonl"
 
-    if not os.path.isfile(os.path.join(processed_dir, prefix)):
-        raise RuntimeError(f"[red]The file {os.path.join(processed_dir, prefix)} does not exist!")
+    if not os.path.isfile(os.path.join(processed_dir, suffix)):
+        raise RuntimeError(f"[red]The file {os.path.join(processed_dir, suffix)} does not exist!")
 
     # Fetch some data from the processed .json
     samples = []
-    with open(os.path.join(processed_dir, prefix), "r", encoding="utf-8") as f:
+    with open(os.path.join(processed_dir, suffix), "r", encoding="utf-8") as f:
         idx = 0
         for line in f:
             if (idx + 1) % 100 == 0:
