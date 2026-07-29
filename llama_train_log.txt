@@ -1,0 +1,55 @@
+╭────────────────────────────╮
+│  LatinLM - Model Training  │
+╰────────────────────────────╯
+
+  Starting Training step...
+ -- [INFO] Model config successfully loaded...
+ -- [INFO] Dataset successfully initialized...
+-- [INFO] Number of tokens from 'train': 800,858,112
+-- [INFO] Number of tokens from 'test': 16,015,360
+-- [INFO] Llama model successfully initialized!
+-- [INFO] Llama model parameters: 125.85M
+wandb:  Loaded credentials for https://api.wandb.ai from /home/lukas.dankwart/.netrc.
+wandb: Currently logged in as: lukas1901 (lukas1901-technische-universit-t-dortmund) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run x512djhw
+wandb: Tracking run with wandb version 0.27.2
+wandb: Run data is saved locally in /raid/home/lukas.dankwart/repos/latinlm/wandb/run-20260729_135112-x512djhw
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run run-1-llama-126M-10epochs
+wandb: ⭐️ View project at https://wandb.ai/lukas1901-technische-universit-t-dortmund/%5Bmidas%5D_latin_llama
+wandb: 🚀 View run at https://wandb.ai/lukas1901-technische-universit-t-dortmund/%5Bmidas%5D_latin_llama/runs/x512djhw
+wandb: Detected  in use.
+wandb: Use W&B Weave for improved LLM call tracing. Install Weave with `pip install weave` then add `import weave` to the top of your script.
+wandb: For more information, check out the docs at: https://weave-docs.wandb.ai
+ -- [INFO] Training procedure will be reported to 'wandb'!
+ warmup_ratio is deprecated and will be removed in v5.2. Use `warmup_steps` instead.
+ -- [INFO] Fetched training arguments successfully...
+ -- [INFO] Initialized Trainer successfully...
+ [INFO] Starting training...
+
+0%|          | 0/30560 [00:00<?, ?it/s]
+0%|          | 1/30560 [00:05<44:23:44,  5.23s/it]
+0%|          | 2/30560 [00:08<32:51:55,  3.87s/it]
+0%|          | 3/30560 [00:11<29:12:44,  3.44s/it]
+0%|          | 4/30560 [00:14<27:29:59,  3.24s/it]
+0%|          | 5/30560 [00:16<26:32:39,  3.13s/it]
+0%|          | 6/30560 [00:19<25:58:15,  3.06s/it]
+0%|          | 7/30560 [00:22<25:36:33,  3.02s/it]
+0%|          | 8/30560 [00:25<25:22:41,  2.99s/it]
+0%|          | 9/30560 [00:28<25:12:58,  2.97s/it]
+0%|          | 10/30560 [00:31<25:06:48,  2.96s/it]
+0%|          | 11/30560 [00:34<25:01:58,  2.95s/it]
+0%|          | 12/30560 [00:37<24:59:10,  2.94s/it]
+0%|          | 13/30560 [00:40<24:57:14,  2.94s/it]
+0%|          | 14/30560 [00:43<24:55:32,  2.94s/it]
+0%|          | 15/30560 [00:46<24:55:12,  2.94s/it]
+0%|          | 16/30560 [00:49<24:53:51,  2.93s/it]
+0%|          | 17/30560 [00:52<24:53:39,  2.93s/it]
+0%|          | 18/30560 [00:55<24:53:33,  2.93s/it]
+0%|          | 19/30560 [00:57<24:53:13,  2.93s/it]
+0%|          | 20/30560 [01:00<24:53:11,  2.93s/it]
+0%|          | 21/30560 [01:03<24:52:58,  2.93s/it]
+0%|          | 22/30560 [01:06<24:52:11,  2.93s/it]
+0%|          | 23/30560 [01:09<24:51:42,  2.93s/it]
+0%|          | 24/30560 [01:12<24:51:35,  2.93s/it]
+0%|          | 25/30560 [01:15<24:51:00,  2.93s/it]

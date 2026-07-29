@@ -32,9 +32,9 @@ train:
   save_steps: 500
   save_total_limit: 10
 
-  per_device_train_batch_size: 16
-  gradient_accumulation_steps: 8
-  gardient_checkpointing: true
+  per_device_train_batch_size: 64
+  gradient_accumulation_steps: 2
+  gradient_checkpointing: true
 
   bf16: true
   dataloader_num_workers: 8
@@ -57,7 +57,7 @@ data:
 
 meta:
   report_to: "wandb"
-  run_name: "run-1-llama-126M-2epochs"
+  run_name: "run-1-llama-126M-10epochs"
   project_name: "[midas]_latin_llama"
   tags: "llama"
   group: "base_models"
