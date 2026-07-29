@@ -65,10 +65,9 @@ def main():
             wandb.init(
                 project=meta_config["project_name"],
                 name=meta_config["run_name"],
-                tags=meta_config["tags"],
+                tags=[meta_config["tags"]],
                 group=meta_config["group"],
             )
-            training_config["report_to"] = meta_config["report_to"]
             training_config["run_name"] = meta_config["run_name"]
             print(f"[yellow] -- [INFO] Training procedure will be reported to '{report_to}'!")
 
