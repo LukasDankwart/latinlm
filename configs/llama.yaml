@@ -34,7 +34,7 @@ train:
 
   per_device_train_batch_size: 16
   gradient_accumulation_steps: 8
-  gardient_checkpointing: true
+  gradient_checkpointing: true
 
   bf16: true
   dataloader_num_workers: 8
