@@ -20,7 +20,7 @@ if __name__ == "__main__":
     tokenizer = Tokenizer.from_file(tokenizer_path)
 
     # Determine path to process fineweb_data
-    processed_dir = config.PROCESSED_DATA_DIR
+    processed_dir = config.DEDUPLICATED_DATA_DIR
     prefix = "HuggingFaceFW_fineweb-2_lat_Latn_clean.jsonl"
 
     if not os.path.isfile(os.path.join(processed_dir, prefix)):

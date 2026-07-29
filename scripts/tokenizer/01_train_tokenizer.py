@@ -8,10 +8,10 @@ from src.training.tokenizer import train_bpe_tokenizer
 """
 
 if __name__ == "__main__":
-    print(f"[START] Downloading training tokenizer with data from '{config.PROCESSED_DATA_DIR}'...")
+    print(f"[START] Downloading training tokenizer with data from '{config.DEDUPLICATED_DATA_DIR}'...")
 
     # Fetch path to all preprocessed data for tokenizer training
-    data_dir = config.PROCESSED_DATA_DIR
+    data_dir = config.DEDUPLICATED_DATA_DIR
     target_dir = config.TOKENIZED_DATA_DIR
     vocab_size = config.TOKENIZER_VOCAB_SIZE
     tokenizer_path = os.path.join(target_dir, "bpe_tokenizer.json")
