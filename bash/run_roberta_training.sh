@@ -46,4 +46,4 @@ echo "GPU $1 seems to be free! Starting script on specified GPU=$1..."
 
 export CUDA_VISIBLE_DEVICES="$REAL_GPU_ID"
 
-nice -n 10 uv run python -m scripts.run_training --train-roberta
+nice -n 10 uv run python -m scripts.run_training --train-roberta | tee roberta_train_log.txt
