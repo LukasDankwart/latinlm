@@ -21,7 +21,8 @@ def main():
 
     # Llama specific args
     parser.add_argument("--skip-inference", action="store_true", help="Skips inference run of Llama")
-    parser.add_argument("--skip-judgment", action="store_true", help="Skips inference run of Llama")
+    parser.add_argument("--skip-metrics", action="store_true", help="Skips computing standard metrics on Llama results")
+    parser.add_argument("--skip-judgment", action="store_true", help="Skips LLM judgment of Llama results")
 
     args = parser.parse_args()
     console.print(Panel.fit("[bold magenta] LatinLM - Model Evaluation [/bold magenta]"))
@@ -83,6 +84,8 @@ def main():
             ]
             if args.skip_inference:
                 extra_args.append(f"--skip-inference")
+            if args.skip_metrics:
+                extra_args.append(f"--skip-metrics")
             if args.skip_judgment:
                 extra_args.append(f"--skip-judgment")
             try:
