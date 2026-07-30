@@ -5,6 +5,8 @@ import argparse
 import os
 from src.utils.utils import load_json_to_dict_list
 import pandas as pd
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 
 def parse_args() -> argparse.Namespace:
     """ Parses roberta specific arguments"""
@@ -122,32 +124,58 @@ def main():
     # 6. Step: ───── Call LLM-as-a-Judge Procedure ─────
     perform_llm_judgment = not args.skip_judgment
     if perform_llm_judgment:
-        if results is not None:
-            deepseek_client = initialize_deepseek_api()
-            print(f"[yellow] -- [INFO] Starting LLM judgment by Deepseek ...[/yellow]")
-            for (idx, res) in enumerate(results):
-                generated_text = res.get("generated_text", None)
-                if generated_text is None:
-                    continue
+        if results is None:
+            # Load pre runned inference results
+            autoregressive_results_path = os.path.join(output_dir, "autoregressive_results.csv")
+            if not os.path.exists(autoregressive_results_path):
+                raise RuntimeError(
+                    f"[ERROR] For LLM judgement, file at: '{autoregressive_results_path}' is required (run eval without --skip-inference arg)")
+            results = pd.read_csv(autoregressive_results_path).to_dict(orient='records')
+
+        deepseek_client = initialize_deepseek_api()
+        print(f"[yellow] -- [INFO] Starting LLM judgment by Deepseek ...[/yellow]")
+
+        # Determine new path in order to not overwrite previous runs
+        base_name = os.path.join(output_dir, "judgement_results_incremental")
+        judged_results_path = f"{base_name}.csv"
+        eval_num = 0
+        while os.path.exists(judged_results_path):
+            judged_results_path = f"{base_name}_{eval_num}.csv"
+            eval_num += 1
+
+        csv_lock = threading.Lock()
+
+        def process_single_sample(res) -> bool:
+            """ Function for single thread"""
+            generated_text = res.get("generated_text", None)
+            if generated_text is not None:
                 judge_results = analyze_sentence_by_llm(client=deepseek_client, latin_sample=generated_text, retries=3)
-                # Storing original input dict + deepsek results dict combined
                 res.update(judge_results)
+            with csv_lock:
+                write_header = not os.path.exists(judged_results_path)
+                pd.DataFrame([res]).to_csv(judged_results_path, mode='a', header=write_header, index=False)
+            return True
 
-                if idx % 10 == 0:
-                    print(
-                        f"[yellow] -- [INFO] Judgement completed for {(idx / len(results)):.2f} of evaluation data...")
-        else:
+        if not results:
             print(f"[WARN] There is no 'results' data for LLM-as-a-judge procedure!")
+        else:
+            max_parallel_requests = 10
+            with ThreadPoolExecutor(max_workers=max_parallel_requests) as executor:
+                futures = [executor.submit(process_single_sample, res) for res in results]
+                for idx, future in enumerate(as_completed(futures), 1):
+                    if idx % 10 == 0:
+                        print(
+                            f"[yellow] -- [INFO] Judgement completed for {((idx / len(results)) * 100):.2f}% ...[/yellow]")
     else:
-        print(f"[yellow] -- [INFO]>> Skipping judgment by Deepseek.")
-
+        print(f"[yellow] -- [INFO]>> Skipping judgment by Deepseek.[/yellow]")
 
     # 6. Step: ───── Storing complete evaluation results to csv ─────
-    evaluation_result_path = os.path.join(output_dir, "evaluation_results.csv")
+    base_eval_path = os.path.join(output_dir, "evaluation_results")
+    evaluation_result_path = f"{base_eval_path}.csv"
     eval_num = 0
     # Check if previous evaluation results exist; adjust path in order to not overwrite previous results
     while os.path.exists(evaluation_result_path):
-        evaluation_result_path = evaluation_result_path.removesuffix(".csv") + f"_{eval_num}.csv"
+        evaluation_result_path = f"{base_eval_path}_{eval_num}.csv"
         eval_num += 1
     df = pd.DataFrame(results)
     df.to_csv(evaluation_result_path)

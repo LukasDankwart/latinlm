@@ -23,18 +23,15 @@ def initialize_deepseek_api() -> OpenAI:
     return client
 
 BASE_PROMPT = """
-    You are an expert for the latin language. Your challenge ist to analyse given latin paragraphs. Most likely, the
-    paragraph will start with original latin text. At an unknown index, the sentence was autoregressive completed by
-    a small LLM model.
-    Your task is to analyse the given paragraph for grammatical correctness, their homogeneity in terms of style and
-    vocabulary, and the semantic meaning. Additionally, you should try to find the index where the original sentence
-    ended and where the generation has started. But remember, given paragraphs might also be fully original. 
-    Answer only with the following json scheme:
+    Act as a Latin linguistics expert analyzing text. The text usually starts with original Latin, but might be 
+    autoregressively completed by an LLM at an unknown index (or be fully original).
+    Analyze grammar, style homogeneity, and semantics.
+    Answer exclusively with a valid JSON object matching this schema:
     {
-        "reasoning": Summarize your language analysis in max. 3 sentence.
-        "is_partially_generated: True or false.
-        "guess_generated_start_word": Name the word if you assume the generation started here (null if text is fully original),
-        "authenticity_1_to_10": General score regarding the authenticity of the given paragraph  (w.r.t to criteria like grammar, vocabulary etc.)
+        "reasoning": "Max 10 words summary of flaws.", 
+        "is_partially_generated": true,
+        "guess_generated_start_word": "word or null",
+        "authenticity_1_to_10": 8
     }
     """
 
@@ -56,7 +53,7 @@ def analyze_sentence_by_llm(client: OpenAI, latin_sample: str, retries: int = 3)
                 ],
                 response_format={"type": "json_object"},
                 temperature=0.2,
-                max_tokens=500
+                max_tokens=2000
             )
             result_json = response.choices[0].message.content
             if not result_json or not result_json.strip():
@@ -67,11 +64,13 @@ def analyze_sentence_by_llm(client: OpenAI, latin_sample: str, retries: int = 3)
                 result_json = result_json[7:]
             if result_json.endswith("```"):
                 result_json = result_json[:-3]
+            if result_json.startswith("```"):
+                result_json = result_json[3:]
 
             return json.loads(result_json)
 
         except Exception as e:
-            print(f"[ERROR] [API] Error while utilizing API in try {attempt} / {retries}... Error: {e}")
+            print(f"[ERROR] [API] Error while utilizing API in try {attempt + 1} / {retries}... Error: {e}")
             time.sleep(2)
     return {"error": "API failed after retries."}
 
