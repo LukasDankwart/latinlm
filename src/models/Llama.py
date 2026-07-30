@@ -129,7 +129,15 @@ def perform_autoregressive_completion(
                     )
 
                 generated_texts = tokenizer.batch_decode(output_ids, skip_special_tokens=True)
-                for list_idx, text_gen in zip(gen_indices, generated_texts):
+
+                # Cleaning tokenizer issue: current tokenizer misses decoding of Ġ to spaces
+                clean_generated_texts = []
+                for text in generated_texts:
+                    cleaned = text.replace(" Ġ", " ").replace("Ġ", " ")
+                    cleaned = " ".join(cleaned.split())
+                    clean_generated_texts.append(cleaned)
+
+                for list_idx, text_gen in zip(gen_indices, clean_generated_texts):
                     batch_results[list_idx]["generated_text"] = text_gen
             else:
                 for list_idx, inp_text in zip(gen_indices, llama_inputs_to_generate):
