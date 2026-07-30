@@ -132,10 +132,14 @@ def perform_autoregressive_completion(
 
                 # Cleaning tokenizer issue: current tokenizer misses decoding of Ġ to spaces
                 clean_generated_texts = []
-                for text in generated_texts:
-                    cleaned = text.replace(" Ġ", " ").replace("Ġ", " ")
-                    cleaned = " ".join(cleaned.split())
-                    clean_generated_texts.append(cleaned)
+                for seq_ids in output_ids:
+                    token_ids = seq_ids.tolist()
+                    valid_ids = [tid for tid in token_ids if tid not in tokenizer.all_special_ids]
+                    raw_tokens = tokenizer.convert_ids_to_tokens(valid_ids)
+                    joined_text = "".join(raw_tokens)
+                    clean_text = joined_text.replace("Ġ", " ").strip()
+                    clean_text = " ".join(clean_text.split())
+                    clean_generated_texts.append(clean_text)
 
                 for list_idx, text_gen in zip(gen_indices, clean_generated_texts):
                     batch_results[list_idx]["generated_text"] = text_gen
