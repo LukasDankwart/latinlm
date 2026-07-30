@@ -116,7 +116,7 @@ def main():
 
                 if idx % 10 == 0:
                     print(
-                        f"[yellow] -- [INFO] Metrics computed for {(idx / len(results)):.2f} of evaluation data...")
+                        f"[yellow] -- [INFO] Metrics computed for {(idx / len(results)) * 100:.2f} of evaluation data...")
         else:
             print(f"[WARN] There is no 'results' data to compute traditional metrics on!")
 

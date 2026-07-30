@@ -31,7 +31,7 @@ def perform_autoregressive_completion(
         inputs: list[dict],
         max_new_tokens: int = 500,
         temperature: float = 0.7,
-        batch_size: int = 16
+        batch_size: int = 64
 ) -> list[dict]:
     """ Performs autoregressive generation of cutted evaluation samples. """
 
@@ -138,6 +138,10 @@ def perform_autoregressive_completion(
         results.extend(batch_results)
         progress = ((i + len(batch_samples)) / len(inputs)) * 100
         print(f"--[INFO] Autoregressive generated sentences: {progress:.2f}%")
+
+        # DEBUGGING
+        if progress > 1.0:
+            return results
 
     return results
 
