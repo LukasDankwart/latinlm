@@ -3,7 +3,7 @@ import random
 import torch
 from transformers import LlamaConfig, LlamaForCausalLM, LlamaTokenizerFast
 from src.utils.utils import load_yaml_config
-from src.tests.llamar_metrics import llamar_perplexity
+from src.tests.llamar_metrics import llamar_perplexity_batched
 import os
 
 import random
@@ -30,7 +30,8 @@ def perform_autoregressive_completion(
         tokenizer_args: dict,
         inputs: list[dict],
         max_new_tokens: int = 500,
-        temperature: float = 0.7
+        temperature: float = 0.7,
+        batch_size: int = 16
 ) -> list[dict]:
     """ Performs autoregressive generation of cutted evaluation samples. """
 
@@ -45,6 +46,10 @@ def perform_autoregressive_completion(
         pad_token=tokenizer_args["pad_token"],
     )
 
+    tokenizer.padding_side = "left"
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+
     # 2. Load model checkpoint
     model = LlamaForCausalLM.from_pretrained(
         checkpoint_path,
@@ -53,57 +58,87 @@ def perform_autoregressive_completion(
     )
     model.eval()
 
+
     # 3. Loop: For every input sentence, call generating procedure and store results
-    print(f"-- [INFO] Starting inference run for evaldata...")
+    print(f"-- [INFO] Starting batched inference run for evaldata...")
     results = []
-    for (idx, sample) in enumerate(inputs):
-        text = sample["text"]
-        source = sample["source"]
 
-        perplexity = llamar_perplexity(model, tokenizer, text)
+    for i in range(0, len(inputs), batch_size):
+        batch_samples = inputs[i:i + batch_size]
 
-        # We skip every sixth sentence in order to also have fully original texts for later LLM Judgement
-        if idx % 6 == 0:
-            results.append({
-                "source": source,
-                "cutoff_idx": "-1",
-                "original": text,
-                "llama_input": text,
-                "generated_text": text,
-                "perplexity": perplexity
-            })
-            continue
+        # computing perplexity for each batch input
+        batch_texts = [sample["text"] for sample in batch_samples]
+        batch_perplexities = llamar_perplexity_batched(model, tokenizer, batch_texts)
 
-        llama_input, cutoff_idx = get_random_prefix(text)
-        prompt_tokenized = tokenizer(llama_input, return_tensors="pt").to(model.device)
-        input_length = prompt_tokenized['input_ids'].shape[1]
-        safe_max_new_tokens = min(max_new_tokens, 2048 - input_length)
+        batch_results = []
+        gen_indices = []
+        llama_inputs_to_generate = []
 
+        for local_idx, sample in enumerate(batch_samples):
+            global_idx = i + local_idx
+            text = sample["text"]
+            source = sample["source"]
 
-        with torch.no_grad():
-            output_ids = model.generate(
-                **prompt_tokenized,
-                max_new_tokens=safe_max_new_tokens,
-                temperature=temperature,
-                do_sample=True,
-                top_p=0.9,
-                repetition_penalty=1.1,
-                eos_token_id=tokenizer.eos_token_id
-            )
+            perplexity = batch_perplexities[local_idx]
 
-        generated_text = tokenizer.decode(output_ids[0], skip_special_tokens=True)
+            if global_idx % 6 == 0:
+                batch_results.append({
+                    "source": source,
+                    "cutoff_idx": "-1",
+                    "original": text,
+                    "llama_input": text,
+                    "generated_text": text,
+                    "perplexity": perplexity
+                })
+            else:
+                llama_input, cutoff_idx = get_random_prefix(text)
 
-        results.append({
-            "source": source,
-            "cutoff_idx": cutoff_idx,
-            "original": text,
-            "llama_input": llama_input,
-            "generated_text": generated_text,
-            "perplexity": perplexity
-        })
+                batch_results.append({
+                    "source": source,
+                    "cutoff_idx": cutoff_idx,
+                    "original": text,
+                    "llama_input": llama_input,
+                    "generated_text": None,
+                    "perplexity": perplexity
+                })
 
-        if idx % 100 == 0:
-            print(f"--[INFO] Autoregressive generated sentences: {(idx / len(inputs)):.2f}%")
+                gen_indices.append(local_idx)
+                llama_inputs_to_generate.append(llama_input)
+
+        if llama_inputs_to_generate:
+            prompt_tokenized = tokenizer(
+                llama_inputs_to_generate,
+                return_tensors="pt",
+                padding=True,
+                truncation=True
+            ).to(model.device)
+
+            input_length = prompt_tokenized['input_ids'].shape[1]
+            safe_max_new_tokens = min(max_new_tokens, max(0, 2048 - input_length))
+
+            if safe_max_new_tokens > 0:
+                with torch.no_grad():
+                    output_ids = model.generate(
+                        **prompt_tokenized,
+                        max_new_tokens=safe_max_new_tokens,
+                        temperature=temperature,
+                        do_sample=True,
+                        top_p=0.9,
+                        repetition_penalty=1.1,
+                        eos_token_id=tokenizer.eos_token_id,
+                        pad_token_id=tokenizer.eos_token_id  # Unterdrückt die Warnung
+                    )
+
+                generated_texts = tokenizer.batch_decode(output_ids, skip_special_tokens=True)
+                for list_idx, text_gen in zip(gen_indices, generated_texts):
+                    batch_results[list_idx]["generated_text"] = text_gen
+            else:
+                for list_idx, inp_text in zip(gen_indices, llama_inputs_to_generate):
+                    batch_results[list_idx]["generated_text"] = inp_text
+
+        results.extend(batch_results)
+        progress = ((i + len(batch_samples)) / len(inputs)) * 100
+        print(f"--[INFO] Autoregressive generated sentences: {progress:.2f}%")
 
     return results
 

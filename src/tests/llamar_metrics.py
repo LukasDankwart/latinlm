@@ -107,7 +107,6 @@ def type_token_ratio(generated_text: str) -> float:
     ttr = len(unique_words) / len(words)
     return ttr
 
-
 def llamar_perplexity(model, tokenizer, text: str) -> float:
     """ Computes perplexity of model on given input text """
     encodings = tokenizer(text, return_tensors="pt").to(model.device)
@@ -127,5 +126,30 @@ def llamar_perplexity(model, tokenizer, text: str) -> float:
         perplexity = torch.exp(loss).item()
 
     return perplexity
+
+
+def llamar_perplexity_batched(model, tokenizer, texts: list[str]) -> list[float]:
+    """ Computes perplexity of model on given input text """
+    encodings = tokenizer(texts, return_tensors="pt", padding=True, truncation=True).to(model.device)
+
+    with torch.no_grad():
+        outputs = model(
+            input_ids=encodings.input_ids,
+            attention_mask=encodings.attention_mask
+        )
+        shift_logits = outputs.logits[..., :-1, :].contiguous()
+        shift_labels = encodings.input_ids[..., 1:].contiguous()
+        shift_mask = encodings.attention_mask[..., 1:].contiguous()
+        loss_fct = torch.nn.CrossEntropyLoss(reduction='none')
+        token_loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
+        token_loss = token_loss.view(shift_labels.size())
+        token_loss = token_loss * shift_mask
+        sum_loss = token_loss.sum(dim=1)
+        valid_tokens_count = shift_mask.sum(dim=1)
+        valid_tokens_count = torch.clamp(valid_tokens_count, min=1)
+        mean_loss_per_sequence = sum_loss / valid_tokens_count
+        perplexities = torch.exp(mean_loss_per_sequence).cpu().tolist()
+
+    return perplexities
 
 
