@@ -1,7 +1,7 @@
 import random
 
 import torch
-from transformers import LlamaConfig, LlamaForCausalLM, LlamaTokenizerFast
+from transformers import LlamaConfig, LlamaForCausalLM, LlamaTokenizerFast, PreTrainedTokenizerFast
 from src.utils.utils import load_yaml_config
 from src.tests.llamar_metrics import llamar_perplexity_batched
 import os
@@ -31,15 +31,15 @@ def perform_autoregressive_completion(
         inputs: list[dict],
         max_new_tokens: int = 500,
         temperature: float = 0.7,
-        batch_size: int = 64
+        batch_size: int = 128
 ) -> list[dict]:
     """ Performs autoregressive generation of cutted evaluation samples. """
 
     # 1. Load Tokenizer from given tokenizer args
     tokenizer_path = tokenizer_args["tokenizer_path"]
     print(f"--[INFO] Loading tokenizer from path: '{tokenizer_path}'")
-    tokenizer = LlamaTokenizerFast.from_pretrained(
-        tokenizer_path,
+    tokenizer = PreTrainedTokenizerFast(
+        tokenizer_file=tokenizer_path,
         bos_token=tokenizer_args["bos_token"],
         eos_token=tokenizer_args["eos_token"],
         unk_token=tokenizer_args["unk_token"],

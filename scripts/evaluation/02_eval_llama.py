@@ -39,7 +39,6 @@ def main():
     checkpoint_path = args.set_checkpoint
     eval_data_path = args.set_evaldata
     output_dir = args.set_outputdir
-    print(f"[yellow] -- [INFO] Model and Tokenizer loaded successfully! [/yellow]")
 
     # 2. Step: ───── Load evaluation data ─────
     if not os.path.exists(eval_data_path):
@@ -116,7 +115,7 @@ def main():
 
                 if idx % 10 == 0:
                     print(
-                        f"[yellow] -- [INFO] Metrics computed for {(idx / len(results)) * 100:.2f} of evaluation data...")
+                        f"[yellow] -- [INFO] Metrics computed for {(idx / len(results)) * 100:.2f}% of evaluation data...")
         else:
             print(f"[WARN] There is no 'results' data to compute traditional metrics on!")
 
