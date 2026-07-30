@@ -58,7 +58,6 @@ def perform_autoregressive_completion(
     )
     model.eval()
 
-
     # 3. Loop: For every input sentence, call generating procedure and store results
     print(f"-- [INFO] Starting batched inference run for evaldata...")
     results = []
@@ -126,7 +125,7 @@ def perform_autoregressive_completion(
                         top_p=0.9,
                         repetition_penalty=1.1,
                         eos_token_id=tokenizer.eos_token_id,
-                        pad_token_id=tokenizer.eos_token_id  # Unterdrückt die Warnung
+                        pad_token_id=tokenizer.eos_token_id
                     )
 
                 generated_texts = tokenizer.batch_decode(output_ids, skip_special_tokens=True)
