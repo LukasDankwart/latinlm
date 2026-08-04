@@ -151,10 +151,6 @@ def perform_autoregressive_completion(
         progress = ((i + len(batch_samples)) / len(inputs)) * 100
         print(f"--[INFO] Autoregressive generated sentences: {progress:.2f}%")
 
-        # DEBUGGING
-        if progress > 1.0:
-            return results
-
     return results
 
 
