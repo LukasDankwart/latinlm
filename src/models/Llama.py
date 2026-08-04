@@ -31,7 +31,7 @@ def perform_autoregressive_completion(
         inputs: list[dict],
         max_new_tokens: int = 500,
         temperature: float = 0.7,
-        batch_size: int = 128
+        batch_size: int = 64
 ) -> list[dict]:
     """ Performs autoregressive generation of cutted evaluation samples. """
 
