@@ -129,7 +129,7 @@ def llamar_perplexity(model, tokenizer, text: str) -> float:
 
 def llamar_perplexity_batched(model, tokenizer, texts: list[str]) -> list[float]:
     """ Computes perplexity of model on given input text """
-    encodings = tokenizer(texts, return_tensors="pt", padding=True, truncation=True).to(model.device)
+    encodings = tokenizer(texts, return_tensors="pt", padding=True, truncation=True, max_length=1024).to(model.device)
 
     with torch.no_grad():
         outputs = model(
@@ -148,6 +148,10 @@ def llamar_perplexity_batched(model, tokenizer, texts: list[str]) -> list[float]
         valid_tokens_count = torch.clamp(valid_tokens_count, min=1)
         mean_loss_per_sequence = sum_loss / valid_tokens_count
         perplexities = torch.exp(mean_loss_per_sequence).cpu().tolist()
+
+        del outputs
+        del shift_logits
+        del token_loss
 
     return perplexities
 
