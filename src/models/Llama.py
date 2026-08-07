@@ -109,7 +109,8 @@ def perform_autoregressive_completion(
                 llama_inputs_to_generate,
                 return_tensors="pt",
                 padding=True,
-                truncation=True
+                truncation=True,
+                max_length=1024
             ).to(model.device)
 
             input_length = prompt_tokenized['input_ids'].shape[1]
@@ -143,13 +144,19 @@ def perform_autoregressive_completion(
 
                 for list_idx, text_gen in zip(gen_indices, clean_generated_texts):
                     batch_results[list_idx]["generated_text"] = text_gen
+
+                del output_ids
+
             else:
                 for list_idx, inp_text in zip(gen_indices, llama_inputs_to_generate):
                     batch_results[list_idx]["generated_text"] = inp_text
 
+            del prompt_tokenized
+
         results.extend(batch_results)
         progress = ((i + len(batch_samples)) / len(inputs)) * 100
         print(f"--[INFO] Autoregressive generated sentences: {progress:.2f}%")
+        torch.cuda.empty_cache()
 
     return results
 
