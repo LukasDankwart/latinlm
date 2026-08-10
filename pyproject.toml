@@ -22,6 +22,8 @@ dependencies = [
     "cltk>=1.5.0",
     "lxml>=6.1.1",
     "datasketch>=2.0.0",
+    "openai>=2.47.0",
+    "python-dotenv>=1.2.2",
 ]
 
 [tool.uv.sources]

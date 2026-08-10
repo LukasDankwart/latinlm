@@ -1,0 +1,18 @@
+seed: 42
+test_size: 0.02
+eval_size: 0.005
+input_dir_path: "data/deduplicated"
+output_dir_path: "data/llama/"
+tokenizer_path: "tokenizer/bpe_tokenizer.json"
+chunk_size: 2048
+
+tokenizer:
+  tokenizer_path: "tokenizer/bpe_tokenizer.json"
+  tokenizer_vocab_size: 32768
+  pad_token: "<pad>"
+  unk_token: "<unk>"
+  mask_token: "<mask>"
+  cls_token: "<s>"
+  bos_token: "<s>"
+  sep_token: "</s>"
+  eos_token: "</s>"

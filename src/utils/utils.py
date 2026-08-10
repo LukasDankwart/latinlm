@@ -23,3 +23,12 @@ def load_json_data(json_path: str) -> List[str]:
                 row_dict = json.loads(line.strip())
                 texts.append(row_dict["text"])
     return texts
+
+
+def load_json_to_dict_list(json_path: str) -> list[dict]:
+    data = []
+    with open(json_path, "r", encoding="utf-8") as file:
+        for line in file:
+            dict_line = json.loads(line)
+            data.append(dict_line)
+    return data
