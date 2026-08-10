@@ -23,6 +23,7 @@ def main():
     parser.add_argument("--skip-inference", action="store_true", help="Skips inference run of Llama")
     parser.add_argument("--skip-metrics", action="store_true", help="Skips computing standard metrics on Llama results")
     parser.add_argument("--skip-judgment", action="store_true", help="Skips LLM judgment of Llama results")
+    parser.add_argument("--skip-summary", action="store_true", help="Skips summary of LLM evaluation results")
 
     args = parser.parse_args()
     console.print(Panel.fit("[bold magenta] LatinLM - Model Evaluation [/bold magenta]"))
@@ -88,6 +89,8 @@ def main():
                 extra_args.append(f"--skip-metrics")
             if args.skip_judgment:
                 extra_args.append(f"--skip-judgment")
+            if args.skip_summary:
+                extra_args.append(f"--skip-summary")
             try:
                 run_subscript(console,
                               "scripts.evaluation.02_eval_llama",

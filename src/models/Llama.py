@@ -1,5 +1,6 @@
 import random
 
+import pandas as pd
 import torch
 from transformers import LlamaConfig, LlamaForCausalLM, LlamaTokenizerFast, PreTrainedTokenizerFast
 from src.utils.utils import load_yaml_config
@@ -31,9 +32,12 @@ def perform_autoregressive_completion(
         inputs: list[dict],
         max_new_tokens: int = 500,
         temperature: float = 0.7,
-        batch_size: int = 64
-) -> list[dict]:
+        batch_size: int = 64,
+        output_path: str = None,
+):
     """ Performs autoregressive generation of cutted evaluation samples. """
+    if output_path is None:
+        raise ValueError(f"[ERROR] Inference is aborted. Given output path for inference results is 'None'! ")
 
     # 1. Load Tokenizer from given tokenizer args
     tokenizer_path = tokenizer_args["tokenizer_path"]
@@ -153,12 +157,18 @@ def perform_autoregressive_completion(
 
             del prompt_tokenized
 
-        results.extend(batch_results)
+        df_batch = pd.DataFrame(batch_results)
+        write_header = (i == 0)
+        df_batch.to_csv(
+            output_path,
+            mode='a',
+            header=write_header,
+            index=False
+        )
+
         progress = ((i + len(batch_samples)) / len(inputs)) * 100
         print(f"--[INFO] Autoregressive generated sentences: {progress:.2f}%")
         torch.cuda.empty_cache()
-
-    return results
 
 
 def get_random_prefix(text: str, min_keep_ratio: float = 0.2, max_keep_ratio: float = 0.8) -> tuple[str, int]:

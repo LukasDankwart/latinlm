@@ -46,4 +46,4 @@ echo "GPU $1 seems to be free! Starting script on specified GPU=$1..."
 
 export CUDA_VISIBLE_DEVICES="$REAL_GPU_ID"
 
-nice -n 10 uv run python -m scripts.run_evaluation --eval-llama --set-checkpoint=experiments/llama_run_1/checkpoint-30560/ --set-evaldata=data/llama/eval/eval_data.json --set-outputdir=experiments/llama_run_1/ --skip-judgment
+nice -n 10 uv run python -m scripts.run_evaluation --eval-llama --set-checkpoint=experiments/llama_run_1/checkpoint-30560/ --set-evaldata=data/llama/eval/eval_data.json --set-outputdir=experiments/llama_run_1/ --skip-judgment --skip-summary
