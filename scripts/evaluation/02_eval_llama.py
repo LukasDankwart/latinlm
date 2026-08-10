@@ -79,6 +79,14 @@ def main():
 
     # 5. Step: ───── Compute traditional metrics ─────
     if not args.skip_metrics:
+        if results is None:
+            # Load pre runned inference results
+            autoregressive_results_path = os.path.join(output_dir, "autoregressive_results.csv")
+            if not os.path.exists(autoregressive_results_path):
+                raise RuntimeError(
+                    f"[ERROR] For standard metrics, file at: '{autoregressive_results_path}' is required (run eval without --skip-inference arg)")
+            results = pd.read_csv(autoregressive_results_path).to_dict(orient='records')
+
         if results is not None:
             print(f"[yellow] -- [INFO] Start computing traditional metrics on generated sequences... [/yellow]")
             for (idx, res) in enumerate(results):
