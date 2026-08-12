@@ -1,0 +1,4 @@
+,wikimedia_wikipedia_20231101.la_clean,nuntii_latini_clean,HuggingFaceFW_fineweb-2_lat_Latn_clean,canonical_latin_clean,grela_clean,vatican_news_clean,cltk_data_clean
+base_quantitiy,94458.0,1051.0,1020826.0,70.0,10482205.0,3474.0,1128.0
+eval_quantitiy,492.0,7.0,5037.0,3.0,51293.0,19.0,5.0
+eval_ratio,0.005208664168201741,0.006660323501427212,0.004934239527598239,0.04285714285714286,0.004893340666396049,0.005469199769717904,0.004432624113475178

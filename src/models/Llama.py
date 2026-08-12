@@ -158,13 +158,20 @@ def perform_autoregressive_completion(
             del prompt_tokenized
 
         df_batch = pd.DataFrame(batch_results)
-        write_header = (i == 0)
-        df_batch.to_csv(
-            output_path,
-            mode='a',
-            header=write_header,
-            index=False
-        )
+        if i == 0:
+            df_batch.to_csv(
+                output_path,
+                mode='w',
+                header=True,
+                index=False
+            )
+        else:
+            df_batch.to_csv(
+                output_path,
+                mode='a',
+                header=False,
+                index=False
+            )
 
         progress = ((i + len(batch_samples)) / len(inputs)) * 100
         print(f"--[INFO] Autoregressive generated sentences: {progress:.2f}%")

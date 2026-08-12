@@ -1,5 +1,6 @@
 import os.path
 
+import pandas as pd
 import yaml
 from typing import List
 import json
@@ -32,3 +33,29 @@ def load_json_to_dict_list(json_path: str) -> list[dict]:
             dict_line = json.loads(line)
             data.append(dict_line)
     return data
+
+
+def count_unique_sources(json_path: str) -> dict:
+    data = load_json_to_dict_list(json_path)
+    results = {}
+    for sample in data:
+        source = sample.get("source")
+        if source not in results.keys():
+            results[str(source)] = {"count": 1.0}
+        else:
+            results[str(source)]["count"] += 1.0
+    return results
+
+def create_data_split_ratio(original_quantities: dict, eval_quantities: dict):
+    overview = {}
+    for key, val in original_quantities.items():
+        overview.update({
+            str(key): {
+                "base_quantitiy": original_quantities[key]["count"],
+                "eval_quantitiy": eval_quantities[key]["count"],
+                "eval_ratio": eval_quantities[key]["count"] / original_quantities[key]["count"]
+            }
+        })
+    df = pd.DataFrame(overview)
+    df.to_csv("dataset_split.csv")
+
