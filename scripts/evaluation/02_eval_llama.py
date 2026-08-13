@@ -131,7 +131,7 @@ def main():
     if perform_llm_judgment:
         if results is None:
             # Load pre runned inference results
-            autoregressive_results_path = os.path.join(output_dir, "autoregressive_results.csv")
+            autoregressive_results_path = os.path.join(output_dir, "evaluation_results_subset.csv")
             if not os.path.exists(autoregressive_results_path):
                 raise RuntimeError(
                     f"[ERROR] For LLM judgement, file at: '{autoregressive_results_path}' is required (run eval without --skip-inference arg)")
@@ -189,7 +189,7 @@ def main():
     if not args.skip_summary:
         if not os.path.exists(evaluation_result_path):
             raise FileNotFoundError(f"[ERROR] For evaluation summary, the results of previous evaluation steps should be stored at '{evaluation_result_path}'!")
-        final_results = load_json_to_dict_list(evaluation_result_path)
+        final_results = pd.read_csv(os.path.join(output_dir, "evaluation_results.csv")).to_dict(orient="records")
         print(f"-- [START] Evaluation Summary...")
 
         # TODO: Conventional metrics
@@ -219,10 +219,14 @@ def main():
             # Therefore, map each given text into bins of how much proportion is original and how much was generated
             # e.g. (20% original, rest generated -> avg. authenticity, 40% original and rest generated -> avg. authenticity ...)
 
+        judgment_results_df = pd.read_csv("experiments/llama_run_1/judgement_results_incremental.csv")
+        judgment_results = judgment_results_df.to_dict(orient="records")
+
         print(f"-- [INFO] Computing LLM-judgement metrics...")
-        judge_global_metrics, judge_source_metrics, judge_bin_metrics = compute_llm_judgement_summary(final_results)
+        judge_global_metrics, judge_source_metrics, judge_bin_metrics, baseline_metrics, baseline_source_metrics = compute_llm_judgement_summary(judgment_results)
+
         judge_global_metrics_path = os.path.join(output_dir, "eval_judgement_global_metrics.csv")
-        judge_global_df = pd.DataFrame(judge_global_metrics)
+        judge_global_df = pd.DataFrame(judge_global_metrics, index=[0])
         judge_global_df.to_csv(judge_global_metrics_path)
         print(f"-- [INFO] Stored global LLM-judgement results to '{judge_global_metrics_path}'")
 
@@ -234,7 +238,17 @@ def main():
         judge_bin_metrics_path = os.path.join(output_dir, "eval_judgement_bin_metrics.csv")
         judge_bin_df = pd.DataFrame(judge_bin_metrics)
         judge_bin_df.to_csv(judge_bin_metrics_path)
-        print(f"-- [INFO] Stored source LLM-judgement results to '{judge_bin_metrics_path}'")
+        print(f"-- [INFO] Stored bin LLM-judgement results to '{judge_bin_metrics_path}'")
+
+        baseline_metrics_path = os.path.join(output_dir, "eval_judgement_global_baseline_metrics.csv")
+        baseline_df = pd.DataFrame(baseline_metrics, index=[0])
+        baseline_df.to_csv(baseline_metrics_path)
+        print(f"-- [INFO] Stored baseline LLM-judgement results to '{baseline_metrics_path}'")
+
+        baseline_source_metrics_path = os.path.join(output_dir, "eval_judgement_source_baseline_metrics.csv")
+        baseline_source_df = pd.DataFrame(baseline_source_metrics)
+        baseline_source_df.to_csv(baseline_source_metrics_path)
+        print(f"-- [INFO] Stored source baseline LLM-judgement results to '{baseline_source_metrics_path}'")
 
 
 if __name__ == "__main__":

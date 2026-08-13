@@ -24,6 +24,7 @@ dependencies = [
     "datasketch>=2.0.0",
     "openai>=2.47.0",
     "python-dotenv>=1.2.2",
+    "matplotlib>=3.11.1",
 ]
 
 [tool.uv.sources]

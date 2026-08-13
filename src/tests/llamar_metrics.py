@@ -192,10 +192,10 @@ def compute_conventional_metric_summary(llama_results: list[dict]) -> tuple[dict
 
         # If cutoff_idx -1, the sample was NOT given to llama for autoregressive generation
         cutoff_idx = int(sample.get("cutoff_idx"))
-        perplexity = sample.get("perplexity")
-        distinct_1 = sample.get("distinct-1")
-        distinct_2 = sample.get("distinct-2")
-        distinct_3 = sample.get("distinct-3")
+        perplexity = float(sample.get("perplexity"))
+        distinct_1 = float(sample.get("distinct-1"))
+        distinct_2 = float(sample.get("distinct-2"))
+        distinct_3 = float(sample.get("distinct-3"))
         if cutoff_idx != -1:
             source_metrics[source]["perplexity_sum"] += perplexity
             source_metrics[source]["dist-1-gram-sum"] += distinct_1
@@ -209,8 +209,12 @@ def compute_conventional_metric_summary(llama_results: list[dict]) -> tuple[dict
         original_words = original.split()
         if not original_words:
             continue
-        original_proportion = len(llama_input.split()) / len(original_words)
-        bin_idx = np.clip(np.digitize(original_proportion, bins) - 1, 0, 5)
+        generated_text = str(sample.get("generated_text", ""))
+        generated_words = generated_text.split()
+        if not generated_words:
+            continue
+        human_proportion = len(llama_input.split()) / len(generated_words)
+        bin_idx = np.clip(np.digitize(human_proportion, bins) - 1, 0, 5)
         bin_key = bin_mapping.get(bin_idx)
 
         bin_metrics[bin_key]["perplexity_sum"] += perplexity
@@ -240,7 +244,7 @@ def clean_word(w):
     """ Removes sentence markers and ensures lower case """
     return w.lower().strip(string.punctuation)
 
-def compute_llm_judgement_summary(llama_results: list[dict]) -> tuple[dict, dict, dict]:
+def compute_llm_judgement_summary(llama_results: list[dict]) -> tuple[dict, dict, dict, dict, dict]:
     """ Computes summary of LLM-as-a-judge evaluation on the llama results. """
 
     # TODO: LLM as a judge summary
@@ -277,18 +281,23 @@ def compute_llm_judgement_summary(llama_results: list[dict]) -> tuple[dict, dict
 
     judge_global_metrics = template_metrics.copy()
     bin_metrics = {f"{b}%": template_metrics.copy() for b in [0, 20, 40, 60, 80, 100]}
+    baseline_metrics = template_metrics.copy()
     bins = np.linspace(0, 1, 6)
     bin_mapping = {0: "0%", 1: "20%", 2: "40%", 3: "60%", 4: "80%", 5: "100%"}
     source_metrics = {}
+    baseline_source_metrics = {}
 
     for sample in llama_results:
         source = sample.get("source")
         if source not in source_metrics.keys():
             source_metrics[source] = template_metrics.copy()
 
+        if source not in baseline_source_metrics.keys():
+            baseline_source_metrics[source] = template_metrics.copy()
+
         # Check if the deepseek api failed while judgement
-        error_ind = sample.get("error")
-        if error_ind is None:
+        error_ind = sample.get("is_partially_generated") is None or str(sample.get("is_partially_generated")) == "nan"
+        if error_ind:
             continue
 
         cutoff_idx = sample.get("cutoff_idx")
@@ -313,8 +322,12 @@ def compute_llm_judgement_summary(llama_results: list[dict]) -> tuple[dict, dict
         original_words = original.split()
         if not original_words:
             continue
-        original_proportion = len(llama_input.split()) / len(original_words)
-        bin_idx = np.clip(np.digitize(original_proportion, bins) - 1, 0, 5)
+        generated_text = str(sample.get("generated_text", ""))
+        generated_words = generated_text.split()
+        if not generated_words:
+            continue
+        human_proportion = len(llama_input.split()) / len(generated_words)
+        bin_idx = np.clip(np.digitize(human_proportion, bins) - 1, 0, 5)
         bin_key = bin_mapping.get(bin_idx)
 
         # Fetch metric results
@@ -324,16 +337,26 @@ def compute_llm_judgement_summary(llama_results: list[dict]) -> tuple[dict, dict
         except (ValueError, TypeError):
             auth_score = 0.0
 
+        # Separate case of original sentences from generated one
         pred_start_word = str(sample.get("guess_generated_start_word", ""))
         if pred_start_word.lower() in ["<null>", "nan", "none", ""]:
             pred_start_word = ""
-        generated_text = str(sample.get("generated_text", ""))
 
-        targets = [
-            judge_global_metrics,
-            source_metrics[source],
-            bin_metrics[bin_key]
-        ]
+        if cutoff_idx == -1:
+            targets = [
+                #judge_global_metrics,
+                source_metrics[source],
+                #bin_metrics[bin_key],
+                baseline_metrics,
+                baseline_source_metrics[source]
+            ]
+        else:
+            targets = [
+                source_metrics[source],
+                bin_metrics[bin_key],
+                judge_global_metrics
+            ]
+
         for metrics in targets:
             metrics["count"] += 1.0
             metrics["auth_sum"] += auth_score
@@ -347,7 +370,6 @@ def compute_llm_judgement_summary(llama_results: list[dict]) -> tuple[dict, dict
             if cutoff_idx != -1:
                 metrics["word_total"] += 1.0
 
-                generated_words = generated_text.split()
                 generation_start_idx = cutoff_idx + 1
 
                 if generation_start_idx < len(generated_words):
@@ -380,7 +402,12 @@ def compute_llm_judgement_summary(llama_results: list[dict]) -> tuple[dict, dict
     for b in bin_metrics.keys():
         bin_metrics[b] = calculate_final_scores(bin_metrics[b])
 
-    return judge_global_metrics, source_metrics, bin_metrics
+    baseline_metrics = calculate_final_scores(baseline_metrics)
+
+    for src in baseline_source_metrics.keys():
+        baseline_source_metrics[src] = calculate_final_scores(baseline_source_metrics[src])
+
+    return judge_global_metrics, source_metrics, bin_metrics, baseline_metrics, baseline_source_metrics
 
 
 def calculate_final_scores(m: dict) -> dict:
